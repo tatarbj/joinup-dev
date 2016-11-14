@@ -71,7 +71,7 @@ tests:
           - setup-php-codesniffer
 
 pipelines:
-  - reference: ALL REFS
+  - reference: *
   - reference: refs/heads/master
     package:
       dist:
