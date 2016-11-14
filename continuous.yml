@@ -126,6 +126,13 @@ pipelines:
         blocking: false
     deployment:
       type: aws-code-deploy
+      destinations:
+        - name: Demo
+          apply_to: push
+          iam_profile: joinup
+          application: joinup
+          group: uat
+          s3_bucket: s3://ec-europa-packages-eu-west-1/joinup
   - reference: refs/heads/feature/migration
     package:
       dist:
@@ -159,3 +166,10 @@ pipelines:
         blocking: false
     deployment:
       type: aws-code-deploy
+      destinations:
+        - name: Migration demo
+          apply_to: push
+          iam_profile: joinup
+          application: joinup
+          group: migration
+          s3_bucket: s3://ec-europa-packages-eu-west-1/joinup
