@@ -1,0 +1,161 @@
+php:
+  - "5.6"
+  - "7.0"
+
+document_root: web
+
+provisioning:
+  dependency_managers:
+    composer: composer.json
+  task_managers:
+    phing: build.xml
+
+package:
+  test:
+    dependency_managers:
+      composer:
+        run_hooks: true
+    before_package:
+      phing:
+        targets:
+          - remove-patched-packages
+          - install-composer-dependencies
+          - build-continuousphp
+          - build-dev
+        properties:
+          drupal.db.user: root
+          drupal.db.password: ~
+          behat.webdriver_url: http://selenium:4444/wd/hub
+          drupal.base_url: http://application
+  dist:
+    dependency_managers:
+      composer:
+        run_hooks: true
+
+tests:
+  behat:
+    blocking: true
+    progress_format: true
+    strict_mode: true
+    paths:
+      - tests/behat.yml
+    before_test:
+      phing:
+        targets:
+          - setup-continuousphp
+          - install-dev
+        properties:
+          drupal.db.user: root
+          drupal.db.password: ~
+          behat.webdriver_url: http://selenium:4444/wd/hub
+          drupal.base_url: http://application
+  phpunit:
+    blocking: true
+    paths:
+      - web/phpunit.xml
+    before_test:
+      phing:
+        targets:
+          - setup-virtuoso-permissions
+          - setup-phpunit
+        properties:
+          phpunit.db_url: sqlite://tmp/db.sql
+  phpcs:
+    blocking: true
+    php: 7.0
+    paths:
+      - phpcs.xml
+    before_test:
+      phing:
+        targets:
+          - setup-php-codesniffer
+
+pipelines:
+  - reference: ALL REFS
+  - reference: refs/heads/master
+    package:
+      dist:
+        before_package:
+          phing:
+            targets:
+              - remove-patched-packages
+              - install-composer-dependencies
+              - build-continuousphp
+              - import-rdf-fixtures
+              - compile-sass
+              - provision-stack
+            properties:
+              cf.KeyName: gboddin
+              cf.stackName: demo
+              deploy.applicationName: joinup
+              aws.profile: joinup
+              github.ssh.keys: gboddin,sandervd,pfrenssen,idimopoulos
+    tests:
+      behat:
+        blocking: false
+      phpunit:
+        blocking: false
+      phpcs:
+        blocking: false
+    deployment:
+      type: tarball
+  - reference: refs/heads/feature/demo
+    package:
+      dist:
+        before_package:
+          phing:
+            targets:
+              - remove-patched-packages
+              - install-composer-dependencies
+              - build-continuousphp
+              - import-rdf-fixtures
+              - compile-sass
+              - provision-stack
+            properties:
+              cf.KeyName: gboddin
+              cf.stackName: uat
+              deploy.applicationName: joinup
+              aws.profile: joinup
+              github.ssh.keys: gboddin,sandervd,pfrenssen,idimopoulos
+    tests:
+      behat:
+        blocking: false
+      phpunit:
+        blocking: false
+      phpcs:
+        blocking: false
+    deployment:
+      type: aws-code-deploy
+  - reference: refs/heads/feature/migration
+    package:
+      dist:
+        before_package:
+          phing:
+            targets:
+              - remove-patched-packages
+              - install-composer-dependencies
+              - build-continuousphp
+              - import-rdf-fixtures
+              - compile-sass
+              - provision-stack
+            properties:
+              cf.KeyName: gboddin
+              cf.stackName: migration
+              deploy.applicationName: joinup
+              aws.profile: joinup
+              github.ssh.keys: gboddin,sandervd,pfrenssen,idimopoulos,brummbar
+              sparql.user: dba
+              sparql.password: dba
+              sparql.host: localhost
+              sparql.dsn: localhost
+              sparql.port: 8890
+              isql.bin: /usr/bin/isql-vt
+    tests:
+      behat:
+        blocking: false
+      phpunit:
+        blocking: false
+      phpcs:
+        blocking: false
+    deployment:
+      type: aws-code-deploy
