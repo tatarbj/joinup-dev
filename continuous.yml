@@ -39,6 +39,9 @@ tests:
     strict_mode: true
     paths:
       - tests/behat.yml
+    env:
+      CPHP_SERVICE_VIRTUOSO_7: 1
+      DISABLE_XDEBUG: 1
     before_test:
       phing:
         targets:
@@ -53,6 +56,9 @@ tests:
     blocking: true
     paths:
       - web/phpunit.xml
+    env:
+      CPHP_SERVICE_VIRTUOSO_7: 1
+      DISABLE_XDEBUG: 1
     before_test:
       phing:
         targets:
@@ -65,6 +71,8 @@ tests:
     php: 7.0
     paths:
       - phpcs.xml
+    env:
+      DISABLE_XDEBUG: 1
     before_test:
       phing:
         targets:
