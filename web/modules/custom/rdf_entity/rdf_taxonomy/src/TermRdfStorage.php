@@ -208,7 +208,7 @@ QUERY;
       if (empty($this->treeChildren[$vid])) {
         /** @var \Drupal\taxonomy\Entity\Vocabulary $voc */
         $voc = entity_load('taxonomy_vocabulary', $vid);
-        $settings = $voc->getThirdPartySetting('rdf_entity', 'mapping_vid');
+        $settings = rdf_entity_get_third_party_property($voc, 'mapping', 'vid', FALSE);
         $concept_schema = array_pop($settings);
         $this->treeChildren[$vid] = array();
         $this->treeParents[$vid] = array();
@@ -223,6 +223,7 @@ WHERE {
   FILTER (lang(?label) = 'en') .
   OPTIONAL {?tid <http://www.w3.org/2004/02/skos/core#broaderTransitive> ?parent }
 }
+ORDER BY DESC(?parent) ?tid
 QUERY;
         $result = $this->sparql->query($query);
         foreach ($result as $term_res) {

@@ -47,14 +47,20 @@ Feature: Add distribution through the UI
       # forced to check for the widget heading.
       # @todo to be handled in ISAICP-2655
       And I should see the text "Access URL"
-      And I should see the text "Distribution file"
+      And I should see the text "Distribution files"
+      # @todo: The link has to be changed to the legal contact form.
+      # @see: https://webgate.ec.europa.eu/CITnet/jira/browse/ISAICP-2789
       And I should see the link "contacting us"
       When I fill in "Title" with "Custom title of asset distribution"
-      And I attach the file "test.zip" to "Add a new file"
-      And I fill in "License" with "WTFPL"
+      And I attach the file "test.zip" to "Distribution file"
+      And I select "WTFPL" from "License"
       And I fill in "Representation technique" with "Web Ontology Language Full/DL/Lite"
       And I press "Save"
       Then I should have 1 distribution
+
+      # Debug step since the default view of the distribution, does not have the access URL shown.
+      And the "Custom title of asset distribution" distribution should have the link of the "test.zip" in the access URL field
+
       # Check if the asset distribution is accessible as an anonymous user
       When I go to the homepage of the "Asset release random name" release
       Then I should see the text "Distribution"
@@ -62,7 +68,6 @@ Feature: Add distribution through the UI
       When I click "Custom title of asset distribution"
       Then I should see the heading "Custom title of asset distribution"
       And I should see the link "WTFPL"
-      And I should see the link "Web Ontology Language Full/DL/Lite"
 
       # The licence label should be shown also in the solution UI.
       When I go to the homepage of the "Solution random x name" solution
