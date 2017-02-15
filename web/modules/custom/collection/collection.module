@@ -189,6 +189,9 @@ function collection_module_implements_alter(&$implementations, $hook) {
 function collection_entity_extra_field_info() {
   $fields = [];
   $collection = RdfEntityType::load('collection');
+  if (empty($collection)) {
+    return;
+  }
   // Add the join/leave collection form as field.
   // @todo will be removed in ISAICP-2743
   $fields['rdf_entity'][$collection->id()]['display']['join_collection'] = [

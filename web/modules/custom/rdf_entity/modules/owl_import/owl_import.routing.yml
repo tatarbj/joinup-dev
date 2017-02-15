@@ -1,0 +1,7 @@
+rdf_import.import:
+  path: '/admin/config/rdf_entity/owl-import'
+  defaults:
+    _title: 'Import RDF ontology'
+    _form: '\Drupal\owl_import\Form\ImportForm'
+  requirements:
+    _permission: 'administer rdf entity'

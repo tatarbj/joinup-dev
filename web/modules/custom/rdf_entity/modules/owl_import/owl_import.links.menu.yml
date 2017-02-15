@@ -1,0 +1,5 @@
+owl_import.settings:
+  title: 'OWL importer'
+  parent: rdf_entity.admin_index
+  description: 'Import OWL ontologies'
+  route_name: rdf_import.import
