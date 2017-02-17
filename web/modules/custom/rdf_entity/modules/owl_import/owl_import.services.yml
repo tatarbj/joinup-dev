@@ -1,0 +1,3 @@
+services:
+  owl_import.ontology_import:
+    class: \Drupal\owl_import\OntologyImport
