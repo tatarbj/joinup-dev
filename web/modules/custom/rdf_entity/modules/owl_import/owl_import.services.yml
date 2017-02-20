@@ -1,3 +1,7 @@
 services:
   owl_import.ontology_import:
     class: \Drupal\owl_import\OntologyImport
+
+  plugin.manager.rdfsproperty:
+    class: Drupal\owl_import\RdfsPropertyPluginManager
+    parent: default_plugin_manager

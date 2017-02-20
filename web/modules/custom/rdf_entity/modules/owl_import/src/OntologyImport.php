@@ -106,40 +106,16 @@ class OntologyImport {
   }
 
   protected function createFields() {
+    /** @var \Drupal\owl_import\RdfsPropertyPluginManager $plugin_manager */
+    $plugin_manager = \Drupal::getContainer()->get('plugin.manager.rdfsproperty');
+    
     foreach ($this->rdfsProperties as $bundle_uri => $bundle_properties) {
       foreach ($bundle_properties as $property_uri => $property_def) {
-        $field_name = str_replace('=', '', base64_encode(sha1($property_uri)));
-        $field_name = strtolower(substr($field_name, -28));
-        FieldStorageConfig::create(array(
-          'field_name' => $field_name,
-          'entity_type' => 'rdf_entity',
-          'type' => 'text',
-        ))->save();
-        $label = $property_def['label'];
-        $comment = $property_def['comment'];
-        $bundle = $this->bundles[$bundle_uri]->id();
-        FieldConfig::create([
-          'field_name' => $field_name,
-          'entity_type' => 'rdf_entity',
-          'bundle' => $bundle,
-          'label' => !empty($label) ? $label->getValue() : $field_name,
-          'description' => !empty($comment) ? $comment->getValue() : '',
-        ])->save();
-
-        // Assign widget settings for the 'default' form mode.
-        entity_get_form_display('rdf_entity', $bundle, 'default')
-          ->setComponent($field_name, array(
-            'type' => 'text_textfield',
-          ))
-          ->save();
-
-        // Assign display settings for the 'default' and 'teaser' view modes.
-        entity_get_display('rdf_entity', $bundle, 'default')
-          ->setComponent($field_name, array(
-            'label' => 'hidden',
-            'type' => 'text_default',
-          ))
-          ->save();
+        /** @var \Drupal\owl_import\RdfsPropertyInterface $rdfs_property_plugin */
+        $rdfs_property_plugin = $plugin_manager->createInstance('http://www.w3.org/2001/XMLSchema#integer');
+        $rdfs_property_plugin->setBundle($bundle_uri, $this->bundles[$bundle_uri]);
+        $rdfs_property_plugin->setPropertyDefinition($property_uri, $property_def);
+        $rdfs_property_plugin->createField();
       }
     }
   }
