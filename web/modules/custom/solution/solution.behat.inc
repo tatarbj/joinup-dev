@@ -275,7 +275,6 @@ class SolutionSubContext extends DrupalSubContextBase implements DrupalSubContex
     if (!empty($values['field_ar_affiliates'])) {
       foreach ($values['field_ar_affiliates'] as $collection_label) {
         $collection = $this->getRdfEntityByLabel(trim($collection_label), 'collection');
-        solution_update_collection_affiliation($solution->id(), $collection->id());
       }
     }
 
