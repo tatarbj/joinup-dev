@@ -274,7 +274,7 @@ class SolutionSubContext extends DrupalSubContextBase implements DrupalSubContex
     // reference between a solution and a collection is backwards.
     if (!empty($values['field_ar_affiliates'])) {
       $label = $values['label'];
-      $affiliates = $values['field_ar_affiliates'];
+      $affiliates = implode(', ', $values['field_ar_affiliates']);
       var_dump("Updating solution $label with affiliated collections $affiliates");
       ob_flush();
       foreach ($values['field_ar_affiliates'] as $collection_label) {
