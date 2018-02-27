@@ -44,7 +44,7 @@ Feature: Collection membership invitations
     When I click "Add members"
     Then I should see the heading "Add members"
 
-  @email
+  @email @clearStaticCache
   Scenario: Facilitators are able to invite users to the collection.
     Given the "Stewie's family" collection should have 0 pending members
 

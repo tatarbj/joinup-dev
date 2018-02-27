@@ -181,7 +181,7 @@ class JoinupInviteSubContext extends DrupalSubContextBase implements DrupalSubCo
 
     $iid = reset($results);
     /** @var \Drupal\joinup_invite\Entity\InvitationInterface $invitation */
-    $invitation = $storage->loadUnchanged($iid);
+    $invitation = $storage->load($iid);
     return $invitation;
   }
 
