@@ -13,6 +13,7 @@ use Drupal\rdf_etl\Plugin\RdfEtlPipelinePluginBase;
  *   steps = {
  *     "manual_upload_step",
  *     "convert_to_adms2",
+ *     "remove_joinup_unsupported_data",
  *     "adms_validation",
  *   },
  * )
