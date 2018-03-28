@@ -184,9 +184,21 @@ class RdfEtlOrchestrator implements RdfEtlOrchestratorInterface {
       $this->redirectForm($form_state);
     }
 
+    try {
+      $error = $step_instance->execute($data);
+    }
+    catch (\Exception $exception) {
+      // Catching any exception from step execution just to reset the pipeline
+      // and allowing a future run. Otherwise, on a new pipeline run, the
+      // orchestrator will jump again to this step and might get stuck here.
+      $this->stateManager->reset();
+      // Propagate the exception.
+      throw $exception;
+    }
+
     // If this step execution returns errors, exit here the pipeline execution
     // but show the errors.
-    if ($error = $step_instance->execute($data)) {
+    if ($error) {
       $this->setStepErrorResponse($error, $data);
       $this->stateManager->reset();
       return NULL;

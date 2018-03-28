@@ -10,11 +10,11 @@ use Drupal\Tests\rdf_entity\Traits\RdfDatabaseConnectionTrait;
 use EasyRdf\Graph;
 
 /**
- * Tests the 'remove_joinup_unsupported_data' process step plugin.
+ * Tests the 'remove_unsupported_data' process step plugin.
  *
  * @group rdf_etl
  */
-class RemoveJoiunpUnsupportedDataStepTest extends KernelTestBase {
+class RemoveUnsupportedDataStepTest extends KernelTestBase {
 
   use RdfDatabaseConnectionTrait;
   use RdfEntityGraphStoreTrait;
@@ -41,7 +41,7 @@ class RemoveJoiunpUnsupportedDataStepTest extends KernelTestBase {
     parent::setUp();
     $this->setUpSparql();
     $graph = new Graph(static::TEST_GRAPH);
-    $graph->parse(file_get_contents(__DIR__ . '/../../fixtures/valid_adms.rdf'));
+    $graph->parseFile(__DIR__ . '/../../fixtures/valid_adms.rdf');
     $this->createGraphStore()->replace($graph);
   }
 
@@ -54,7 +54,7 @@ class RemoveJoiunpUnsupportedDataStepTest extends KernelTestBase {
     /** @var \Drupal\rdf_etl\Plugin\RdfEtlStepPluginManager $manager */
     $manager = $this->container->get('plugin.manager.rdf_etl_step');
     /** @var \Drupal\rdf_etl\Plugin\RdfEtlStepInterface $plugin */
-    $plugin = $manager->createInstance('remove_joinup_unsupported_data', [
+    $plugin = $manager->createInstance('remove_unsupported_data', [
       'sink_graph' => $graph_uri,
     ]);
 
@@ -73,23 +73,23 @@ WHERE {
 }
 Query;
 
-    $unsupported_triples = 0;
+    $unsupported_triples_count = 0;
     foreach ($this->sparql->query($query) as $triple) {
-      // Only 'http://vocabulary/term' triples are unsupported from in file.
+      // Only http://vocabulary/term triples are unsupported in the test file.
       if ($triple->subject->getUri() == 'http://vocabulary/term') {
-        $unsupported_triples++;
+        $unsupported_triples_count++;
       }
     }
 
     // Check that all remaining triples are supported.
-    $this->assertEquals(0, $unsupported_triples);
+    $this->assertEquals(0, $unsupported_triples_count);
   }
 
   /**
    * {@inheritdoc}
    */
   public function tearDown() {
-    $this->sparql->query("CLEAR GRAPH <" . static::TEST_GRAPH . ">;");
+    $this->sparql->query('CLEAR GRAPH <' . static::TEST_GRAPH . '>;');
     parent::tearDown();
   }
 

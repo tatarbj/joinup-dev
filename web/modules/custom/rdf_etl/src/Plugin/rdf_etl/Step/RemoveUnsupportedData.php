@@ -20,11 +20,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * owners or contact information.
  *
  * @RdfEtlStep(
- *  id = "remove_joinup_unsupported_data",
+ *  id = "remove_unsupported_data",
  *  label = @Translation("Remove data not supported by Joinup"),
  * )
  */
-class RemoveJoinupUnsupportedData extends RdfEtlStepPluginBase implements ContainerFactoryPluginInterface {
+class RemoveUnsupportedData extends RdfEtlStepPluginBase implements ContainerFactoryPluginInterface {
 
   use RdfEntityGraphStoreTrait;
 
@@ -70,15 +70,15 @@ class RemoveJoinupUnsupportedData extends RdfEtlStepPluginBase implements Contai
   public function execute(array &$data) {
     $graph_uri = $this->getConfiguration()['sink_graph'];
 
-    $entity_type_uris = [];
+    $rdf_entity_bundle_uris = [];
     /** @var \Drupal\rdf_entity\RdfEntityMappingInterface $mapping */
     foreach (RdfEntityMapping::loadMultiple() as $mapping) {
       // Only add rdf:type URI for RDF entities.
       if ($mapping->getTargetEntityTypeId() === 'rdf_entity') {
-        $entity_type_uris[] = $mapping->getRdfType();
+        $rdf_entity_bundle_uris[] = $mapping->getRdfType();
       }
     }
-    $entity_type_uris = SparqlArg::serializeUris($entity_type_uris);
+    $rdf_entity_bundle_uris = SparqlArg::serializeUris($rdf_entity_bundle_uris);
 
     $query = <<<Ouery
 DELETE FROM <$graph_uri> {
@@ -92,7 +92,7 @@ WHERE {
     WHERE {
       GRAPH <$graph_uri> {
         ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object .
-        FILTER ( ?object NOT IN ( $entity_type_uris ) ) .
+        FILTER ( ?object NOT IN ( $rdf_entity_bundle_uris ) ) .
       }
     }
   }
