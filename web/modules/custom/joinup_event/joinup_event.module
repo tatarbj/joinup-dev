@@ -2,15 +2,17 @@
 
 /**
  * @file
- * Contains joinup_event.module.
+ * Hook implementations for the Joinup Event module.
  */
+
+declare(strict_types = 1);
 
 use Drupal\Core\Entity\EntityTypeInterface;
 
 /**
  * Implements hook_entity_bundle_field_info_alter().
  */
-function joinup_event_entity_bundle_field_info_alter(&$fields, EntityTypeInterface $entity_type, $bundle) {
+function joinup_event_entity_bundle_field_info_alter(array &$fields, EntityTypeInterface $entity_type, string $bundle): void {
   if ($entity_type->id() == 'node' && $bundle == 'event') {
     if (!empty($fields['field_short_title'])) {
       $fields['field_short_title']->addConstraint('UniqueField');
@@ -18,5 +20,25 @@ function joinup_event_entity_bundle_field_info_alter(&$fields, EntityTypeInterfa
     if (!empty($fields['title'])) {
       $fields['title']->addConstraint('UniqueFieldInBundle', ['bundles' => ['event']]);
     }
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function joinup_event_entity_type_alter(array &$entity_types): void {
+  /* @var $entity_types \Drupal\Core\Entity\EntityTypeInterface */
+  if (isset($entity_types['node'])) {
+    $entity_types['node']->addConstraint('EventLocationConstraint');
+  }
+}
+
+/**
+ * Implements template_preprocess_fieldset().
+ */
+function joinup_event_preprocess_fieldset(array &$variables): void {
+  // Add an "asterisk" to the Event Location Field Group.
+  if ($variables['element']['#id'] == 'group-event-location') {
+    $variables['legend_span']['attributes']->addClass('js-form-required form-required');
   }
 }

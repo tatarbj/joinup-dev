@@ -8,7 +8,7 @@ dependencies:
 id: joinup_user_local_tasks
 theme: joinup_theme
 region: content
-weight: -11
+weight: -19
 provider: null
 plugin: local_tasks_block
 settings:
@@ -21,6 +21,6 @@ settings:
 visibility:
   request_route:
     id: request_route
-    routes: "user.login\r\nuser.pass\r\nuser.register"
+    routes: "user.login\nuser.pass\nuser.register"
     negate: false
     context_mapping: {  }

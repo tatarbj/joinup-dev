@@ -32,7 +32,7 @@ trait EntityTrait {
    *   Thrown when an entity with the given type, label and bundle does not
    *   exist.
    */
-  protected function getEntityByLabel(string $entity_type_id, string $label, string $bundle = NULL): EntityInterface {
+  protected static function getEntityByLabel(string $entity_type_id, string $label, string $bundle = NULL): EntityInterface {
     $entity_manager = \Drupal::entityTypeManager();
     try {
       $storage = $entity_manager->getStorage($entity_type_id);
@@ -113,10 +113,9 @@ trait EntityTrait {
       ['title' => $title]
     );
     if (empty($menu_links)) {
-      throw new \Exception("The menu parent with title '{$title}' was not found.");
+      throw new \Exception("The menu link with title '{$title}' was not found.");
     }
 
-    /** @var \Drupal\menu_link_content\MenuLinkContentInterface $parent_link */
     return reset($menu_links);
   }
 

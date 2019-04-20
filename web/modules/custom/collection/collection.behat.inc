@@ -18,7 +18,6 @@ use Drupal\joinup\Traits\UserTrait;
 use Drupal\joinup\Traits\UtilityTrait;
 use Drupal\joinup\Traits\WorkflowTrait;
 use Drupal\og\Og;
-use Drupal\og\OgGroupAudienceHelperInterface;
 use Drupal\og\OgMembershipInterface;
 use Drupal\og\OgRoleInterface;
 use Drupal\og_menu\Tests\Traits\OgMenuTrait;
@@ -42,6 +41,33 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
   use WorkflowTrait;
 
   /**
+   * Mapping of human readable field labels to machine names.
+   */
+  protected const FIELD_ALIASES = [
+    'author' => 'uid',
+    'uri' => 'id',
+    'title' => 'label',
+    'abstract' => 'field_ar_abstract',
+    'access url' => 'field_ar_access_url',
+    'affiliates' => 'field_ar_affiliates',
+    'banner' => 'field_ar_banner',
+    'closed' => 'field_ar_closed',
+    'contact information' => 'field_ar_contact_information',
+    'creation date' => 'created',
+    'description' => 'field_ar_description',
+    'elibrary creation' => 'field_ar_elibrary_creation',
+    'logo' => 'field_ar_logo',
+    'moderation' => 'field_ar_moderation',
+    'modification date' => 'changed',
+    'owner' => 'field_ar_owner',
+    'policy domain' => 'field_policy_domain',
+    'spatial coverage' => 'field_spatial_coverage',
+    'state' => 'field_ar_state',
+    'featured' => 'field_site_featured',
+    'pinned site-wide' => 'field_site_pinned',
+  ];
+
+  /**
    * Test collections.
    *
    * @var \Drupal\rdf_entity\Entity\Rdf[]
@@ -51,8 +77,8 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
   /**
    * Navigates to the propose collection form.
    *
-   * @When (I )go to the propose collection form
-   * @When (I )visit the propose collection form
+   * @When I go to the propose collection form
+   * @When I visit the propose collection form
    */
   public function visitProposeCollectionForm() {
     $this->visitPath('propose/collection');
@@ -64,31 +90,13 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @param string $collection
    *   The title of the collection.
    *
-   * @When (I )go to (the homepage of )the :collection collection
-   * @When (I )visit (the homepage of )the :collection collection
+   * @When I go to (the homepage of )the :collection collection
+   * @When I visit (the homepage of )the :collection collection
    */
   public function visitCollection($collection) {
     /** @var \Drupal\rdf_entity\Entity\Rdf $collection */
     $collection = $this->getCollectionByName($collection);
     $this->visitPath($collection->url());
-  }
-
-  /**
-   * Asserts the order of elements.
-   *
-   * @Then I should see the following collection menu items in the specified order:
-   */
-  public function assertRepeatedElementContainsText(TableNode $table) {
-    $parent = $this->getSession()->getPage()->findAll('css', '.block-collection-menu-blocknavigation li.sidebar-menu__item');
-    $i = 0;
-    foreach ($table->getHash() as $repeatedElement) {
-      $child = $parent[$i];
-      \PHPUnit_Framework_Assert::assertEquals(
-        $child->find('css', 'a.sidebar-menu__link')->getText(),
-        $repeatedElement['text']
-      );
-      $i++;
-    }
   }
 
   /**
@@ -117,8 +125,8 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @param string $collection
    *   The title of the collection.
    *
-   * @When (I )go to the :collection collection edit form
-   * @When (I )visit the :collection collection edit form
+   * @When I go to the :collection collection edit form
+   * @When I visit the :collection collection edit form
    */
   public function visitEditCollection($collection) {
     /** @var \Drupal\rdf_entity\Entity\Rdf $collection */
@@ -130,7 +138,7 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
   /**
    * Navigates to the collections overview page.
    *
-   * @When (I )visit the collection overview page
+   * @When I visit the collection overview( page)
    */
   public function visitCollectionOverviewPage() {
     $this->visitPath('/collections');
@@ -157,7 +165,7 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @Given (the following )collections:
    */
   public function givenCollections(TableNode $collection_table) {
-    $aliases = self::collectionFieldAliases();
+    $aliases = self::FIELD_ALIASES;
 
     foreach ($collection_table->getColumnsHash() as $collection) {
       $values = [];
@@ -179,39 +187,6 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
 
       $this->createCollection($values);
     }
-  }
-
-  /**
-   * Returns the field alias mapping.
-   *
-   * @return array
-   *   The field alias mapping.
-   */
-  protected static function collectionFieldAliases() {
-    // Mapping alias - field name.
-    return [
-      'author' => 'uid',
-      'uri' => 'id',
-      'title' => 'label',
-      'abstract' => 'field_ar_abstract',
-      'access url' => 'field_ar_access_url',
-      'affiliates' => 'field_ar_affiliates',
-      'banner' => 'field_ar_banner',
-      'closed' => 'field_ar_closed',
-      'contact information' => 'field_ar_contact_information',
-      'creation date' => 'created',
-      'description' => 'field_ar_description',
-      'elibrary creation' => 'field_ar_elibrary_creation',
-      'logo' => 'field_ar_logo',
-      'moderation' => 'field_ar_moderation',
-      'modification date' => 'changed',
-      'owner' => 'field_ar_owner',
-      'policy domain' => 'field_policy_domain',
-      'spatial coverage' => 'field_spatial_coverage',
-      'state' => 'field_ar_state',
-      'featured' => 'field_site_featured',
-      'pinned site-wide' => 'field_site_pinned',
-    ];
   }
 
   /**
@@ -352,7 +327,7 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @Given (the following )collection:
    */
   public function givenCollection(TableNode $collection_table) {
-    $aliases = self::collectionFieldAliases();
+    $aliases = self::FIELD_ALIASES;
 
     $values = [];
     // Replace the column aliases with the actual field names.
@@ -380,7 +355,7 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @param string $collection
    *   The title of the collection.
    *
-   * @When (I )delete the :collection collection
+   * @When I delete the :collection collection
    */
   public function deleteCollection($collection) {
     /** @var \Drupal\rdf_entity\Entity\Rdf $collection */
@@ -535,16 +510,19 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
    *    Throws an exception if the parent item is not found.
    *
    * @Given (the following )custom page(s) menu structure:
+   * @Given (the following )collection menu structure:
    */
   public function givenCollectionMenuStructure(TableNode $menu_table) {
+    /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
+    $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
     foreach ($menu_table->getColumnsHash() as $values) {
-      $child_link = $this->getMenuLinkByTitle($values['title']);
-      $child_link->set('weight', $values['weight']);
-      if (!empty($values['parent'])) {
+      if (isset($values['parent']) && !empty($values['parent'])) {
         $parent_link = $this->getMenuLinkByTitle($values['parent']);
-        $child_link->set('parent', $parent_link->getPluginId());
+        $values['parent'] = $parent_link->getPluginId();
       }
-      $child_link->save();
+
+      $child_link = $this->getMenuLinkByTitle($values['title']);
+      $menu_link_manager->updateDefinition($child_link->getPluginId(), $values);
     }
   }
 
@@ -741,31 +719,6 @@ class CollectionSubContext extends DrupalSubContextBase implements DrupalSubCont
       'label' => 'Joinup',
       'field_ar_state' => 'validated',
     ]);
-  }
-
-  /**
-   * Checks if the given node belongs to the given collection.
-   *
-   * If there are multiple nodes or collections with the same name, then only
-   * the first one is checked.
-   *
-   * @param string $title
-   *   The title of the node to check.
-   * @param string $collection
-   *   The name of the collection to check.
-   *
-   * @throws \Exception
-   *   Thrown when a node with the given title doesn't exist.
-   *
-   * @Then the :collection collection should have a custom page titled :title
-   * @Then the :collection collection should have a community content titled :title
-   */
-  public function assertNodeOgMembership($title, $collection) {
-    $collection = $this->getRdfEntityByLabel($collection, 'collection');
-    $node = $this->getNodeByTitle($title);
-    if ($node->get(OgGroupAudienceHelperInterface::DEFAULT_FIELD)->target_id !== $collection->id()) {
-      throw new \Exception("The node '$title' is not associated with collection '{$collection->label()}'.");
-    }
   }
 
 }

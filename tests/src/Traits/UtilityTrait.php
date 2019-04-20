@@ -3,7 +3,7 @@
 namespace Drupal\joinup\Traits;
 
 use Behat\Mink\Element\NodeElement;
-use Behat\Mink\Exception\UnsupportedDriverActionException;
+use PHPUnit\Framework\Assert;
 
 /**
  * Contains utility methods.
@@ -28,23 +28,6 @@ trait UtilityTrait {
   }
 
   /**
-   * Checks that we are running on a JavaScript-enabled browser.
-   *
-   * @throws \Behat\Mink\Exception\UnsupportedDriverActionException
-   *   Thrown when not running on a JS-enabled browser.
-   */
-  protected function assertJavaScriptEnabledBrowser() {
-    $driver = $this->getMink()->getSession()->getDriver();
-    try {
-      $driver->isVisible('//body');
-    }
-    catch (UnsupportedDriverActionException $e) {
-      // Show a helpful error message.
-      throw new UnsupportedDriverActionException('This test needs to run on a real browser like Selenium or PhantomJS. Please add the "@javascript" tag to the scenario.', $driver);
-    }
-  }
-
-  /**
    * Checks if an element is visible for human eyes.
    *
    * To enable certain elements to be visible for screen readers but not for
@@ -59,7 +42,7 @@ trait UtilityTrait {
    *   The element to check for visibility.
    */
   protected function assertVisuallyVisible(NodeElement $element) {
-    \PHPUnit_Framework_Assert::assertTrue($this->isVisuallyVisible($element), 'The element is visually visible');
+    Assert::assertTrue($this->isVisuallyVisible($element), 'The element is visually visible');
   }
 
   /**
@@ -78,7 +61,7 @@ trait UtilityTrait {
    *   The element to check for visibility.
    */
   protected function assertNotVisuallyVisible(NodeElement $element) {
-    \PHPUnit_Framework_Assert::assertFalse($this->isVisuallyVisible($element), 'The element is not visually visible');
+    Assert::assertFalse($this->isVisuallyVisible($element), 'The element is not visually visible');
   }
 
   /**
@@ -97,6 +80,7 @@ trait UtilityTrait {
    *   element.
    */
   protected function isVisuallyVisible(NodeElement $element) {
+    \assert(method_exists($this, 'assertJavaScriptEnabledBrowser'), __METHOD__ . ' depends on BrowserCapabilityDetectionTrait. Please include it in your class.');
     // This only works on JS-enabled browsers.
     $this->assertJavaScriptEnabledBrowser();
 

@@ -49,6 +49,14 @@
   html.js &
     display: none
 
+.fieldset__read-more
+  display: inline
+
+.fieldset--abstract-wrapper
+  margin-bottom: 16px
+  > p
+    display: inline
+
 // Modifiers
 // --------------------------------------------------
 .fieldset--separated
@@ -107,6 +115,10 @@
   img.align-right
     +breakpoint(md)
       margin-left: 20px
+  table
+    table-layout: fixed
+    td
+      vertical-align: top
 
 // Dependiencies
 // --------------------------------------------------

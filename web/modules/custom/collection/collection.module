@@ -5,6 +5,8 @@
  * Main functions and hook implementations of the Collection module.
  */
 
+declare(strict_types = 1);
+
 use Drupal\collection\Plugin\Field\FieldType\LastUpdatedFieldItemList;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
@@ -13,6 +15,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\joinup_core\ELibraryCreationOptions;
@@ -268,7 +271,7 @@ function collection_rdf_entity_update(EntityInterface $entity) {
   }
 
   if ($entity->field_ar_state->value === 'validated') {
-    \Drupal::entityTypeManager()->getStorage('rdf_entity')->deleteFromGraph($entity->id(), 'draft');
+    \Drupal::entityTypeManager()->getStorage('rdf_entity')->deleteFromGraph([$entity], 'draft');
   }
 }
 
@@ -293,6 +296,13 @@ function collection_module_implements_alter(&$implementations, $hook) {
 function collection_entity_extra_field_info() {
   $fields = [];
   $collection = RdfEntityType::load('collection');
+
+  // This hook can fire before the collection bundle config is defined, in that
+  // case we have nothing meaningful to add.
+  if (empty($collection)) {
+    return;
+  }
+
   // Add the join/leave collection form as field.
   // @todo will be removed in ISAICP-2743
   $display = &$fields['rdf_entity'][$collection->id()]['display'];
@@ -314,17 +324,23 @@ function collection_entity_extra_field_info() {
     'visible' => FALSE,
   ];
 
+  $display['read_more'] = [
+    'label' => t('Read more'),
+    'description' => t('Shows a link to the about page of the collection'),
+    'visible' => FALSE,
+  ];
+
   return $fields;
 }
 
 /**
  * Implements hook_ENTITY_TYPE_view().
  *
- * Populates the extra field 'join_collection'.
+ * Shows extra fields for the collection bundle.
  */
 function collection_rdf_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
   /** @var \Drupal\rdf_entity\RdfInterface $entity */
-  if ($entity->bundle() != 'collection') {
+  if ($entity->bundle() !== 'collection') {
     return;
   }
 
@@ -344,7 +360,7 @@ function collection_rdf_entity_view(array &$build, EntityInterface $entity, Enti
   if ($display->getComponent('members')) {
     $member_count = collection_member_count($entity);
     $tag = $entity->getEntityTypeId() . ':' . $entity->id();
-    // @see collection_og_membership_presave()
+    // @see joinup_core_og_membership_invalidate_group_tags()
     $tags = Cache::buildTags('joinup-membership', [$tag]);
     $build['members'] = [
       '#markup' => \Drupal::translation()->formatPlural($member_count, '@member_count Member', '@member_count Members', ['@member_count' => $member_count]),
@@ -366,6 +382,30 @@ function collection_rdf_entity_view(array &$build, EntityInterface $entity, Enti
       ],
     ];
   }
+
+  // Read more link to the about page.
+  if ($display->getComponent('read_more')) {
+    $build['read_more'] = $entity->toLink(t('Read more'), 'about-page', [
+      'attributes' => [
+        'class' => ['about-page', 'read-more', 'fieldset__read-more'],
+      ],
+    ])->toRenderable();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_view_alter().
+ */
+function collection_rdf_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  /** @var \Drupal\rdf_entity\RdfInterface $entity */
+  if ($entity->bundle() !== 'collection' || $display->getMode() !== 'default') {
+    return;
+  }
+
+  // Hide the description when the abstract is available.
+  if (Element::children($build['field_ar_abstract'])) {
+    $build['field_ar_description']['#access'] = FALSE;
+  }
 }
 
 /**
@@ -378,12 +418,13 @@ function collection_rdf_entity_view(array &$build, EntityInterface $entity, Enti
  *   Amount of members.
  */
 function collection_member_count(RdfInterface $entity) {
-  return \Drupal::entityQuery('og_membership')
+  $query = \Drupal::database()->select('og_membership', 'om');
+  $query->innerJoin('users_field_data', 'ufd', 'om.uid = ufd.uid');
+  $query->condition('ufd.status', 1)
     ->condition('entity_type', 'rdf_entity')
     ->condition('entity_id', $entity->id())
-    ->condition('state', OgMembershipInterface::STATE_ACTIVE)
-    ->count()
-    ->execute();
+    ->condition('state', OgMembershipInterface::STATE_ACTIVE);
+  return $query->countQuery()->execute()->fetchField();
 }
 
 /**
@@ -401,16 +442,19 @@ function collection_solution_count(RdfInterface $entity) {
   foreach ($solutions as $solution) {
     $solution_ids[] = $solution->getValue()['target_id'];
   }
-  $solution_count = 0;
+  $results = 0;
   if ($solution_ids) {
-    $solution_count = \Drupal::entityQuery('rdf_entity')
-      ->condition('rid', 'solution')
+    /** @var \Drupal\rdf_entity\Entity\Query\Sparql\Query $solution_count */
+    $solution_count = \Drupal::entityQuery('rdf_entity');
+    // @todo Chain the query methods.
+    // @see https://github.com/ec-europa/rdf_entity/issues/26
+    $solution_count->setGraphType(['default']);
+    $results = $solution_count->condition('rid', 'solution')
       ->condition('id', $solution_ids, 'IN')
-      ->condition('field_is_state', 'validated')
       ->count()
       ->execute();
   }
-  return $solution_count;
+  return $results;
 }
 
 /**
@@ -514,14 +558,6 @@ function collection_search_api_solr_query_alter(Query $solarium_query, QueryInte
     'score' => 'desc',
     'ds_entity_created' => 'desc',
   ]);
-}
-
-/**
- * Implements hook_ENTITY_TYPE_presave().
- */
-function collection_og_membership_presave(OgMembershipInterface $entity) {
-  $tags = [$entity->getGroupEntityType() . ':' . $entity->getGroupId()];
-  Cache::invalidateTags(Cache::buildTags('joinup-membership', $tags));
 }
 
 /**

@@ -34,7 +34,7 @@ Feature: Document moderation
     # create content, authenticated users that are not members can create
     # documents.
     When I am logged in as "Crab y Patties"
-    And go to the homepage of the "The Naked Ashes" collection
+    And I go to the homepage of the "The Naked Ashes" collection
     And I click "Add document" in the plus button menu
     # Post moderated collections allow publishing content directly.
     And I should see the button "Publish"
@@ -102,6 +102,12 @@ Feature: Document moderation
     When I am logged in as "Kirk Collier"
     And I go to the homepage of the "The Naked Ashes" collection
     And I click "A not so amazing document"
+
+    # Regression check that the revision page loads properly.
+    # @see: https://webgate.ec.europa.eu/CITnet/jira/browse/ISAICP-4671
+    When I click "Revisions" in the "Entity actions" region
+    Then I should see the heading "Revisions for A not so amazing document"
+
     And I click "Edit" in the "Entity actions" region
     Then the current workflow state should be "Published"
     And the following fields should be present "Motivation"

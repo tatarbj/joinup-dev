@@ -9,6 +9,13 @@
       $(this).siblings('.mdl-menu__container').toggleClass('is-hidden');
     });
 
+    // Add classes to support menu button.
+    $('.support-menu .support-button').each(function () {
+      if (!$(this).closest('div').hasClass('hidden')) {
+        $('.search-bar--header').addClass('search-bar--header-shifted');
+      }
+    });
+
     // Always use the fullscreen indicator for ajax throbbers in the frontend.
     if (typeof Drupal !== 'undefined' && Drupal.Ajax) {
       // Sets the fullscreen progress indicator.

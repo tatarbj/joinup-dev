@@ -1,22 +1,29 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\joinup\Plugin\Block;
 
+use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Session\AccountProxy;
 use Drupal\joinup_community_content\CommunityContentHelper;
+use Drupal\og\MembershipManager;
 use Drupal\search_api\Query\QueryInterface;
 use Drupal\search_api\Query\ResultSetInterface;
 use Drupal\search_api\SearchApiException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Session\AccountProxy;
-use Drupal\og\MembershipManager;
 
 /**
  * Provides a block with the recommended community content for the current user.
+ *
+ * This is the block that is responsible for the content and tiles that are
+ * shown on the homepage.
  *
  * @Block(
  *  id = "recommended_content",
@@ -117,9 +124,9 @@ class RecommendedContentBlock extends BlockBase implements ContainerFactoryPlugi
 
     // If the user is a member of one or more collections or solutions, show
     // the latest content from those.
-    $groups = $this->ogMembershipManager->getUserGroups($this->currentUser->getAccount());
-    if (!empty($groups['rdf_entity'])) {
-      $this->entities += $this->getContentFromMemberships($groups, $count - count($this->entities));
+    $group_ids = $this->ogMembershipManager->getUserGroupIds($this->currentUser->getAccount());
+    if (!empty($group_ids['rdf_entity'])) {
+      $this->entities += $this->getContentFromMemberships($group_ids, $count - count($this->entities));
     }
     // Show popular content to anonymous users and users without memberships.
     else {
@@ -151,8 +158,16 @@ class RecommendedContentBlock extends BlockBase implements ContainerFactoryPlugi
    *
    * @return \Drupal\Core\Entity\ContentEntityInterface[]
    *   An array of pinned entities to render.
+   *
+   * @throws \Drupal\search_api\SearchApiException
+   *   Thrown if an error occurred during the search.
    */
-  protected function getPinnedEntities($limit) {
+  protected function getPinnedEntities(int $limit): array {
+    // Early exit if we do not need to retrieve any data.
+    if ($limit === 0) {
+      return [];
+    }
+
     $query = $this->getPublishedIndex()->query();
     $query->addCondition('site_pinned', TRUE);
     $query->sort('entity_created', 'DESC');
@@ -165,32 +180,36 @@ class RecommendedContentBlock extends BlockBase implements ContainerFactoryPlugi
   /**
    * Receives the content of the groups the user is a member of.
    *
-   * @param array $groups
-   *   The user's memberships.
+   * @param array $group_ids
+   *   The user's membership IDs.
    * @param int $limit
    *   The number of results to fetch.
    *
    * @return array
    *   An array of rows to render.
+   *
+   * @throws \Drupal\search_api\SearchApiException
+   *   Thrown if an error occurred during the search for group content.
    */
-  protected function getContentFromMemberships(array $groups, $limit) {
-    $rdf_entities = isset($groups['rdf_entity']) ? $groups['rdf_entity'] : [];
+  protected function getContentFromMemberships(array $group_ids, int $limit): array {
+    // Early exit if we do not need to retrieve any data.
+    if ($limit === 0) {
+      return [];
+    }
+
+    $rdf_entity_ids = $group_ids['rdf_entity'] ?? [];
 
     // Only show content from the first 100 groups to avoid hitting the query
     // size limit.
-    if (count($rdf_entities) > 100) {
-      $subset = array_chunk($rdf_entities, 100);
-      $rdf_entities = reset($subset);
+    if (count($rdf_entity_ids) > 100) {
+      $subset = array_chunk($rdf_entity_ids, 100);
+      $rdf_entity_ids = reset($subset);
     }
-
-    $cids = array_map(function ($rdf_entity) {
-      return $rdf_entity->id();
-    }, $rdf_entities);
 
     /** @var \Drupal\search_api\Query\QueryInterface $query */
     $query = $this->getPublishedIndex()->query();
     $query->addCondition('entity_bundle', CommunityContentHelper::getBundles(), 'IN');
-    $query->addCondition('entity_groups', $cids, 'IN');
+    $query->addCondition('entity_groups', $rdf_entity_ids, 'IN');
     $query->sort('entity_created', 'DESC');
     $query->range(0, $limit);
     $this->excludeEntitiesFromQuery($query);
@@ -207,8 +226,16 @@ class RecommendedContentBlock extends BlockBase implements ContainerFactoryPlugi
    *
    * @return \Drupal\Core\Entity\ContentEntityInterface[]
    *   The most popular community content entities.
+   *
+   * @throws \Drupal\search_api\SearchApiException
+   *   Thrown if an error occurred during the search.
    */
-  protected function getPopularContent($limit) {
+  protected function getPopularContent(int $limit): array {
+    // Early exit if we do not need to retrieve any data.
+    if ($limit === 0) {
+      return [];
+    }
+
     /** @var \Drupal\search_api\Query\QueryInterface $query */
     $query = $this->getPublishedIndex()->query();
     $query->addCondition('entity_bundle', CommunityContentHelper::getBundles(), 'IN');
@@ -230,7 +257,7 @@ class RecommendedContentBlock extends BlockBase implements ContainerFactoryPlugi
    * @return \Drupal\Core\Entity\ContentEntityInterface[]
    *   The valid results, as loaded entities.
    */
-  protected function getResultEntities(ResultSetInterface $result) {
+  protected function getResultEntities(ResultSetInterface $result): array {
     $results = [];
     /* @var $item \Drupal\search_api\Item\ItemInterface */
     foreach ($result->getResultItems() as $item) {
@@ -258,8 +285,26 @@ class RecommendedContentBlock extends BlockBase implements ContainerFactoryPlugi
    *   The loaded search index.
    */
   protected function getPublishedIndex() {
-    /** @var \Drupal\search_api\Entity\Index $index */
-    $index = $this->entityTypeManager->getStorage('search_api_index')->load('published');
+    // The Joinup profile is depending on the Search API module so we can
+    // reasonably assume that the entity storage for it is defined. Since entity
+    // storage in Drupal is dynamic, Drupal core performs a number of checks
+    // when the storage is accessed and will throw exceptions if it is missing
+    // or ill-defined. These checks are not applicable to our situation.
+    // Instead of letting these hypothetical exceptions bubble up we convert
+    // them to unchecked runtime exceptions. Unchecked exceptions will still be
+    // thrown and logged in the extremely rare case that the storage would go
+    // missing, but then we do not need to catch or document them in the calling
+    // code.
+    try {
+      /** @var \Drupal\search_api\Entity\Index $index */
+      $index = $this->entityTypeManager->getStorage('search_api_index')->load('published');
+    }
+    catch (PluginNotFoundException $e) {
+      throw new \RuntimeException('The Search API Index entity storage is not found.', 0, $e);
+    }
+    catch (InvalidPluginDefinitionException $e) {
+      throw new \RuntimeException('The Search API Index entity storage definition is invalid.', 0, $e);
+    }
 
     return $index;
   }
@@ -270,7 +315,7 @@ class RecommendedContentBlock extends BlockBase implements ContainerFactoryPlugi
    * @param \Drupal\search_api\Query\QueryInterface $query
    *   The query being run.
    */
-  protected function excludeEntitiesFromQuery(QueryInterface $query) {
+  protected function excludeEntitiesFromQuery(QueryInterface $query): void {
     if (empty($this->entities)) {
       return;
     }

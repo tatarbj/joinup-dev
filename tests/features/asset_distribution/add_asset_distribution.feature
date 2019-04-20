@@ -1,7 +1,7 @@
 @api
 Feature: Add distribution through the UI
   In order to manage distributions
-  As a moderator
+  As a facilitator
   I need to be able to add "Distribution" RDF entities through the UI.
 
   Background:
@@ -18,9 +18,11 @@ Feature: Add distribution through the UI
       | title         | 1.0.0 Authoritarian Alpaca |
       | description   | First public release.      |
       | is version of | Solution random x name     |
-    And the following licence:
-      | title       | WTFPL                                    |
-      | description | The WTFPL is a rather permissive licence |
+      | state         | validated                  |
+    And the following licences:
+      | title              | description                                              | deprecated |
+      | WTFPL              | The WTFPL is a rather permissive licence                 | no         |
+      | Deprecated licence | The deprecated licence should not be available to select | yes        |
 
   Scenario: Add a distribution to a solution as a facilitator.
     When I am logged in as a "facilitator" of the "Solution random x name" solution
@@ -30,7 +32,10 @@ Feature: Add distribution through the UI
     When I click "Add distribution"
     Then I should see the heading "Add Distribution"
     And the following fields should be present "Title, Description, Access URL, License, Format, Representation technique"
-    And the following fields should not be present "Langcode, Translation"
+    But the following fields should not be present "Langcode, Translation"
+    And the "License" field should contain the "WTFPL" options
+    But the "License" field should not contain the "Deprecated licence" options
+
     # @todo: The link has to be changed to the legal contact form.
     # @see: https://webgate.ec.europa.eu/CITnet/jira/browse/ISAICP-2789
     And I should see the link "contacting us"
@@ -116,6 +121,7 @@ Feature: Add distribution through the UI
     And the "Source tarball" distribution should have the link of the "test.zip" in the access URL field
 
     # Check if the asset distribution is accessible as an anonymous user
+    When I am an anonymous user
     When I go to the homepage of the "1.0.0 Authoritarian Alpaca" release
     Then I should see the text "Distribution"
     And I should see the link "Source tarball"
@@ -193,10 +199,11 @@ Feature: Add distribution through the UI
       | title       | Boost Software License                                                         |
       | description | It is a permissive license in the style of the BSD license and the MIT license |
     And distributions:
-      | title        | licence                | solution               |
+      | title        | licence                | parent                 |
       | Hot Snake    | WTFPL                  | Solution random x name |
       | Quality Yard | Boost Software License | Solution random x name |
 
     When I go to the homepage of the "Solution random x name" solution
-    Then I should not see the text "WTFPL"
-    And I should not see the text "Boost Software License"
+    # Distributions are still shown in the solution page and so the License text will be visible in the page.
+    Then I should not see the text "WTFPL" in the "Header" region
+    And I should not see the text "Boost Software License" in the "Header" region

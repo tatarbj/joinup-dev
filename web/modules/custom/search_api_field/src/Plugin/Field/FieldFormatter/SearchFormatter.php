@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\search_api_field\Plugin\Field\FieldFormatter;
 
 use Drupal\Core\Cache\Cache;
@@ -7,12 +9,17 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FormatterBase;
+use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\search_api\Entity\Index;
+use Drupal\Core\Utility\Error;
+use Drupal\search_api\IndexInterface;
 use Drupal\search_api\ParseMode\ParseModePluginManager;
 use Drupal\search_api\Query\QueryInterface;
 use Drupal\search_api\Query\ResultSetInterface;
 use Drupal\search_api\SearchApiException;
+use Drupal\search_api_field\Plugin\Field\FieldType\SearchItemInterface;
+use Drupal\search_api_field\Plugin\FilterPluginManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -35,6 +42,20 @@ class SearchFormatter extends FormatterBase implements ContainerFactoryPluginInt
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   protected $entityTypeManager;
+
+  /**
+   * The filter plugin manager.
+   *
+   * @var \Drupal\search_api_field\Plugin\FilterPluginManagerInterface
+   */
+  protected $filterPluginManager;
+
+  /**
+   * The search_api logger channel.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelInterface
+   */
+  protected $logger;
 
   /**
    * The query parse mode manager.
@@ -73,13 +94,19 @@ class SearchFormatter extends FormatterBase implements ContainerFactoryPluginInt
    *   The current request object.
    * @param \Drupal\search_api\ParseMode\ParseModePluginManager $parse_mode_manager
    *   The query parse mode manager.
+   * @param \Drupal\search_api_field\Plugin\FilterPluginManagerInterface $filter_plugin_manager
+   *   The filter plugin manager.
+   * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   The search_api logger channel.
    */
-  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, array $third_party_settings, EntityTypeManagerInterface $entity_type_manager, Request $request, ParseModePluginManager $parse_mode_manager) {
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, array $third_party_settings, EntityTypeManagerInterface $entity_type_manager, Request $request, ParseModePluginManager $parse_mode_manager, FilterPluginManagerInterface $filter_plugin_manager, LoggerChannelInterface $logger) {
     parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $label, $view_mode, $third_party_settings);
 
     $this->entityTypeManager = $entity_type_manager;
+    $this->filterPluginManager = $filter_plugin_manager;
     $this->parseModeManager = $parse_mode_manager;
     $this->request = $request;
+    $this->logger = $logger;
   }
 
   /**
@@ -96,84 +123,50 @@ class SearchFormatter extends FormatterBase implements ContainerFactoryPluginInt
       $configuration['third_party_settings'],
       $container->get('entity_type.manager'),
       $container->get('request_stack')->getCurrentRequest(),
-      $container->get('plugin.manager.search_api.parse_mode')
+      $container->get('plugin.manager.search_api.parse_mode'),
+      $container->get('plugin.manager.search_api_field.filter'),
+      $container->get('logger.channel.search_api')
     );
   }
 
   /**
    * {@inheritdoc}
    */
-  public function viewElements(FieldItemListInterface $items, $langcode) {
-    $entity = $items->getEntity();
-    $field_definition = $this->fieldDefinition;
-
+  public function viewElements(FieldItemListInterface $items, $langcode): array {
     // Avoid infinite recursion when a search node is shown as a result.
-    if ($entity->search_api_field_do_not_recurse) {
+    if ($items->getEntity()->search_api_field_do_not_recurse) {
       return [];
     }
 
     // At the moment, this formatter supports only single-value fields.
-    $settings_item = $items->first();
-    if (empty($settings_item)) {
+    $item = $items->first();
+    if (empty($item)) {
       return [];
     }
-    $settings = $settings_item->value;
+    $settings = $item->value;
     // Bail out if the field is disabled.
     if (empty($settings['enabled'])) {
       return [];
     }
 
-    $index_id = $field_definition->getSetting('index');
-    /* @var $search_api_index \Drupal\search_api\IndexInterface */
-    $search_api_index = Index::load($index_id);
-
-    if (empty($search_api_index)) {
-      throw new SearchApiException("Could not load index with ID '$index_id'.");
+    try {
+      $query = $this->getSearchQuery($settings, $item);
+      $result = $query->execute();
+      // Extract the limit value from the query as it might have been altered
+      // doing execution.
+      $render = $this->renderSearchResults($result, $query->getOption('limit'));
     }
-
-    $limit = !empty($settings['limit']) ? $settings['limit'] : 10;
-
-    $options = [
-      'limit' => $limit,
-      'offset' => !is_null($this->request->get('page')) ? $this->request->get('page') * $limit : 0,
-      'search_api_field entity' => $entity,
-      'search_api_field item' => $items->first(),
-    ];
-    $query = $search_api_index->query($options);
-    $query->setSearchId($field_definition->getTargetEntityTypeId() . '.' . $field_definition->getName());
-    $query->setParseMode($this->parseModeManager->createInstance('direct'));
-
-    if (!empty($settings['query_presets'])) {
-      $this->applyPresets($query, $settings['query_presets']);
+    catch (SearchApiException $exception) {
+      $this->logger->log(RfcLogLevel::ERROR, 'Failed to execute query with error "@message".', Error::decodeException($exception));
+      return [
+        // Do not cache this page as the exception could be temporary. This
+        // is in line with the uncacheability of a request when an exception
+        // occurs and it is not cached.
+        '#cache' => [
+          'max-age' => 0,
+        ],
+      ];
     }
-
-    $hooks = [
-      'search_api_field_',
-      'search_api_field_' . $field_definition->getName(),
-    ];
-    foreach ($hooks as $hook) {
-      $query->addTag($hook);
-    }
-
-    $result = $query->execute();
-    $render = $this->renderSearchResults($result, $limit);
-    $tags = [];
-    // Check the search index for entity data sources,
-    // and add all as cache tags.
-    foreach ($search_api_index->getDatasources() as $datasource) {
-      $plugin_def = $datasource->getPluginDefinition();
-      if ($plugin_def['id'] != 'entity') {
-        continue;
-      }
-      $entity_type_id = $plugin_def['entity_type'];
-      $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
-      $list_tags = $entity_type->getListCacheTags();
-      $tags = Cache::mergeTags($tags, $list_tags);
-    }
-    $render['#cache'] = [
-      'tags' => $tags,
-      'contexts' => ['url.path'],
-    ];
 
     // Add some information about the field.
     // @see \Drupal\Core\Field\FormatterBase::view()
@@ -189,6 +182,49 @@ class SearchFormatter extends FormatterBase implements ContainerFactoryPluginInt
   }
 
   /**
+   * Generates the search query given the field settings.
+   *
+   * @param array $settings
+   *   The settings configured in the field.
+   * @param \Drupal\search_api_field\Plugin\Field\FieldType\SearchItemInterface $item
+   *   The field item.
+   *
+   * @return \Drupal\search_api\Query\QueryInterface
+   *   The prepared query.
+   */
+  protected function getSearchQuery(array $settings, SearchItemInterface $item): QueryInterface {
+    $field_definition = $this->fieldDefinition;
+
+    $options = [
+      'limit' => !empty($settings['limit']) ? $settings['limit'] : 10,
+      'offset' => !is_null($this->request->get('page')) ? $this->request->get('page') * $settings['limit'] : 0,
+      'search_api_field entity' => $item->getEntity(),
+      'search_api_field item' => $item,
+    ];
+    $query = $this->getSearchApiIndex()->query($options);
+    $query->setSearchId($field_definition->getTargetEntityTypeId() . '.' . $field_definition->getName());
+    $query->setParseMode($this->parseModeManager->createInstance('direct'));
+
+    if (!empty($settings['query_presets'])) {
+      $this->applyPresets($query, $settings['query_presets']);
+    }
+
+    if (!empty($settings['query_builder'])) {
+      $this->applyQueryBuilderConfiguration($query, $settings['query_builder']);
+    }
+
+    $hooks = [
+      'search_api_field',
+      'search_api_field_' . $field_definition->getName(),
+    ];
+    foreach ($hooks as $hook) {
+      $query->addTag($hook);
+    }
+
+    return $query;
+  }
+
+  /**
    * Builds a renderable array for the search results.
    *
    * @param \Drupal\search_api\Query\ResultSetInterface $result
@@ -199,7 +235,7 @@ class SearchFormatter extends FormatterBase implements ContainerFactoryPluginInt
    * @return array
    *   The render array for the search results.
    */
-  protected function renderSearchResults(ResultSetInterface $result, $limit) {
+  protected function renderSearchResults(ResultSetInterface $result, $limit): array {
     $view_mode_settings = $this->fieldDefinition->getSetting('view_modes');
 
     $results = [];
@@ -278,7 +314,7 @@ class SearchFormatter extends FormatterBase implements ContainerFactoryPluginInt
       ];
     }
 
-    return $build;
+    return $this->attachCacheMetadata($build);
   }
 
   /**
@@ -289,7 +325,7 @@ class SearchFormatter extends FormatterBase implements ContainerFactoryPluginInt
    * @param string $presets
    *   The presets string.
    */
-  protected function applyPresets(QueryInterface $query, $presets) {
+  protected function applyPresets(QueryInterface $query, string $presets): void {
     $list = explode("\n", $presets);
     $list = array_map('trim', $list);
     $list = array_filter($list, 'strlen');
@@ -316,6 +352,80 @@ class SearchFormatter extends FormatterBase implements ContainerFactoryPluginInt
         $query->addCondition($field, $value, $operator);
       }
     }
+  }
+
+  /**
+   * Applies the query builder filters configured in the field instance.
+   *
+   * @param \Drupal\search_api\Query\QueryInterface $query
+   *   The search query object.
+   * @param array $configuration
+   *   The query builder configuration.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\PluginException
+   */
+  protected function applyQueryBuilderConfiguration(QueryInterface $query, array $configuration): void {
+    $or = $query->createConditionGroup('OR');
+    foreach ($configuration['filters'] as $delta => $plugin_config) {
+      /** @var \Drupal\search_api_field\Plugin\FilterPluginInterface $plugin */
+      $plugin = $this->filterPluginManager->createInstance($plugin_config['plugin'], $plugin_config);
+      $plugin->applyFilter($or);
+    }
+    $query->addConditionGroup($or);
+  }
+
+  /**
+   * Attaches cache metadata to the rendered search results.
+   *
+   * @param array $build
+   *   The search result render array.
+   *
+   * @return array
+   *   The render array with cache metadata.
+   */
+  protected function attachCacheMetadata(array $build): array {
+    $tags = [];
+    // Check the search index for entity data sources,
+    // and add all as cache tags.
+    foreach ($this->getSearchApiIndex()->getDatasources() as $datasource) {
+      $plugin_def = $datasource->getPluginDefinition();
+      if ($plugin_def['id'] != 'entity') {
+        continue;
+      }
+      $entity_type_id = $plugin_def['entity_type'];
+      $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+      // @todo we should add also the list cache contexts.
+      $list_tags = $entity_type->getListCacheTags();
+      $tags = Cache::mergeTags($tags, $list_tags);
+    }
+
+    $build['#cache'] = [
+      'tags' => $tags,
+      'contexts' => [
+        'url.path',
+        'user',
+      ],
+    ];
+
+    return $build;
+  }
+
+  /**
+   * Returns the search API index configured for this field.
+   *
+   * @return \Drupal\search_api\IndexInterface
+   *   The loaded index entity.
+   */
+  protected function getSearchApiIndex(): IndexInterface {
+    $index_id = $this->fieldDefinition->getSetting('index');
+    /** @var \Drupal\search_api\IndexInterface $index */
+    $index = $this->entityTypeManager->getStorage('search_api_index')->load($index_id);
+
+    if (!$index) {
+      throw new SearchApiException("Could not load index with ID '$index_id'.");
+    }
+
+    return $index;
   }
 
 }

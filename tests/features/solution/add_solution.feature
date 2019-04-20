@@ -60,7 +60,7 @@ Feature: "Add solution" visibility options.
     # Regression test to endure that the language terms "Multilingual Code" are not present.
     And the available options in the "Language" select should not include the "Multilingual Code"
     And I should see the description "For best result the image must be larger than 2400x770 pixels." for the "Banner" field
-    And the "Solution type" field should contain the "IOP specification underpinning View, Legal View, Organisational View" option groups
+    And the "Solution type" field should contain the "IOP specification underpinning View, Legal View, Organisational View, deprecated" option groups
     When I fill in the following:
       | Title            | Espresso is the solution                                      |
       | Description      | This is a test text                                           |
@@ -82,10 +82,11 @@ Feature: "Add solution" visibility options.
     # @see: https://webgate.ec.europa.eu/CITnet/jira/browse/ISAICP-3342
     And I select "Completed" from "Status"
     And I press "Propose"
-    Then the following email should have been sent:
-      | recipient | Ruth Lee                                                                                          |
-      | subject   | Joinup: A new solution has been proposed                                                          |
-      | body      | Wendell Silva has proposed a new Interoperability solution: "Espresso is the solution" on Joinup. |
+    Then the email sent to "Ruth Lee" with subject "Joinup: A new solution has been proposed" contains the following lines of text:
+      | text                                                                                              |
+      | Wendell Silva has proposed a new Interoperability solution: "Espresso is the solution" on Joinup. |
+      | If you think this action is not clear or not due, please contact Joinup Support at                |
+    And I should see "Thank you for proposing a solution. Your request is currently pending approval by the site administrator."
 
     # Regression test for non required fields 'Banner' and 'Logo'.
     # @see: https://webgate.ec.europa.eu/CITnet/jira/browse/ISAICP-3328
@@ -102,9 +103,10 @@ Feature: "Add solution" visibility options.
     And I press "Publish"
     # The name of the solution should exist in the block of the relative content in a collection.
     Then I should see the heading "Espresso is the solution"
-    # The solution fields will be shown in the "about" page.
+    # The description is shown in the overview.
+    And I should see the text "This is a test text"
+    # Most solution fields are not shown in the overview but in the "about" page.
     # @see https://webgate.ec.europa.eu/CITnet/jira/browse/ISAICP-3224
-    And I should not see the text "This is a test text"
     And I should not see the link "Demography"
     And I should not see the link "Belgium"
     And I should not see the link "Flemish"
@@ -165,7 +167,7 @@ Feature: "Add solution" visibility options.
       | Title       | PHP comments parser                             |
       | Description | A simple parser that goes through PHP comments. |
     And I select "Data gathering, data processing" from "Policy domain"
-    And I select "[ABB117] Implementing Guideline" from "Solution type"
+    And I select "Implementing Guideline" from "Solution type"
 
     # Submit the incomplete form, so error messages about missing fields will
     # be shown.
@@ -223,7 +225,7 @@ Feature: "Add solution" visibility options.
       | Name             | Angela Crespi                               |
       | E-mail address   | angela_crespi@glacmon.basel-uni.ch          |
     And I select "Data gathering, data processing" from "Policy domain"
-    And I select "[ABB59] Logging Service" from "Solution type"
+    And I select "Logging Service" from "Solution type"
     And I press "Add existing" at the "Owner" field
     And I fill in "Owner" with "University of Basel"
     And I press "Add owner"
