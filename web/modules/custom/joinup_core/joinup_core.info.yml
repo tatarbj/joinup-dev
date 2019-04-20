@@ -11,10 +11,12 @@ dependencies:
   - facets
   - image
   - link
+  - matomo_reporting_api
+  - menu_admin_per_menu
   - message
   - message_notify
+  - oe_newsroom_newsletter
   - og
-  - piwik_reporting_api
   - rdf_draft
   - rdf_entity
   - rdf_taxonomy
@@ -22,6 +24,8 @@ dependencies:
   - search_api
   - search_api_solr
   - state_machine
+  - tour
+
 config_devel:
   - comment.type.comment
   - core.entity_form_display.comment.comment.default
@@ -44,6 +48,7 @@ config_devel:
   - field.storage.node.og_audience
   - field.storage.rdf_entity.field_download_count
   - field.storage.rdf_entity.field_keywords
+  - field.storage.rdf_entity.field_newsletter
   - field.storage.rdf_entity.field_policy_domain
   - field.storage.rdf_entity.field_site_featured
   - field.storage.rdf_entity.field_site_pinned
@@ -57,14 +62,13 @@ config_devel:
   - image.style.wysiwyg_full_width
   - image.style.wysiwyg_half_width
   - image.style.wysiwyg_one_third_width
-  - joinup_core.piwik_settings
+  - joinup_core.matomo_settings
   - rdf_entity.mapping.taxonomy_term.actor
   - rdf_entity.mapping.taxonomy_term.business_process
   - rdf_entity.mapping.taxonomy_term.eira
   - rdf_entity.mapping.taxonomy_term.eurovoc
   - rdf_entity.mapping.taxonomy_term.file_type
   - rdf_entity.mapping.taxonomy_term.language
-  - rdf_entity.mapping.taxonomy_term.licence_type
   - rdf_entity.mapping.taxonomy_term.owner_type
   - rdf_entity.mapping.taxonomy_term.policy_domain
   - rdf_entity.mapping.taxonomy_term.product_type
@@ -81,10 +85,13 @@ config_devel:
   - taxonomy.vocabulary.eurovoc
   - taxonomy.vocabulary.file_type
   - taxonomy.vocabulary.language
-  - taxonomy.vocabulary.licence_type
   - taxonomy.vocabulary.owner_type
   - taxonomy.vocabulary.policy_domain
   - taxonomy.vocabulary.representation_technique
   - taxonomy.vocabulary.spatial
   - taxonomy.vocabulary.status
   - taxonomy.vocabulary.themes
+  - tour.tour.account
+  - tour.tour.content_overview
+  - tour.tour.joinup_homepage
+  - tour.tour.rdf_entity_canonical

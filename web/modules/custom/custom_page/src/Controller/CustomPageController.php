@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\custom_page\Controller;
 
 use Drupal\Component\Utility\Xss;
@@ -20,19 +22,20 @@ class CustomPageController extends CommunityContentController {
   /**
    * {@inheritdoc}
    *
-   * The custom pages are only allowed to be created for collections.
+   * The custom pages are only allowed to be created for collections and
+   * solutions.
    */
-  public function createAccess(RdfInterface $rdf_entity, AccountInterface $account = NULL) {
+  public function createAccess(RdfInterface $rdf_entity, AccountInterface $account = NULL): AccessResult {
     if (empty($account)) {
       $account = $this->currentUser();
     }
 
-    if ($rdf_entity->bundle() !== 'collection') {
+    if (!in_array($rdf_entity->bundle(), ['collection', 'solution'])) {
       return AccessResult::forbidden();
     }
 
     // The user is not allowed to create custom pages for archived collections.
-    if ($rdf_entity->field_ar_state->first()->value === 'archived') {
+    if ($rdf_entity->bundle() === 'collection' && $rdf_entity->field_ar_state->first()->value === 'archived') {
       return AccessResult::forbidden();
     }
 
@@ -44,7 +47,7 @@ class CustomPageController extends CommunityContentController {
   /**
    * {@inheritdoc}
    */
-  protected function getBundle() {
+  protected function getBundle(): string {
     return 'custom_page';
   }
 

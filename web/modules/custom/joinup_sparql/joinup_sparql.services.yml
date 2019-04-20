@@ -1,0 +1,9 @@
+services:
+  joinup_sparql.default_graphs.subscriber:
+    class: Drupal\joinup_sparql\EventSubscriber\JoinupSparqlDefaultGraphsSubscriber
+    tags:
+    - name: event_subscriber
+  joinup_sparql.http_middleware.accept_based_negotiation:
+    class: Drupal\joinup_sparql\JoinupAcceptHeaderMiddleware
+    tags:
+      - { name: http_middleware, priority: 401 }

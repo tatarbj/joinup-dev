@@ -9,6 +9,7 @@ use Drupal\DrupalExtension\Context\DrupalSubContextBase;
 use Drupal\DrupalExtension\Context\DrupalSubContextInterface;
 use Drupal\joinup\Traits\NodeTrait;
 use Drupal\joinup_subscription\JoinupSubscriptionInterface;
+use PHPUnit\Framework\Assert;
 
 /**
  * Behat step definitions for testing discussions.
@@ -23,8 +24,8 @@ class DiscussionSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @param string $title
    *   The name of the discussion.
    *
-   * @When (I )go to the :title discussion
-   * @When (I )visit the :title discussion
+   * @When I go to the :title discussion
+   * @When I visit the :title discussion
    */
   public function visitDiscussion($title) {
     /** @var \Drupal\node\Entity\Node $node */
@@ -45,7 +46,7 @@ class DiscussionSubContext extends DrupalSubContextBase implements DrupalSubCont
   public function assertSubscribers($title, $count) {
     $discussion = $this->getNodeByTitle($title, 'discussion');
     $subscribers = $this->getSubscriptionService()->getSubscribers($discussion, 'subscribe_discussions');
-    PHPUnit_Framework_Assert::assertEquals($count, count($subscribers));
+    Assert::assertEquals($count, count($subscribers));
   }
 
   /**

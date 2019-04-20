@@ -1,0 +1,24 @@
+search_api_field.plugin.filter.node_entity_autocomplete:
+  type: joinup_search_filter_plugin_entity_autocomplete
+  label: 'Node entity label autocomplete'
+
+search_api_field.plugin.filter.rdf_entity_autocomplete:
+  type: joinup_search_filter_plugin_entity_autocomplete
+  label: 'Rdf entity label autocomplete'
+
+joinup_search_filter_plugin_entity_autocomplete:
+  type: search_api_field_plugin_filter
+  mapping:
+    target_id:
+      type: string
+      label: 'Target id'
+
+views.field.search_api_entity_link:
+  type: views.field.entity_link
+  mapping:
+    use_highlighting:
+      type: boolean
+      label: 'Use highlighted field data'
+    link_to_item:
+      type: boolean
+      label: 'Link to item'

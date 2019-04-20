@@ -72,7 +72,7 @@ class ContextualLinksHelper {
    *   An array of link paths found keyed by title.
    */
   public function findContextualLinkPaths(NodeElement $element): array {
-    if (!$this->browserSupportsJavascript()) {
+    if (!$this->browserSupportsJavaScript()) {
       return $this->generateContextualLinks($element);
     }
 
@@ -105,19 +105,23 @@ class ContextualLinksHelper {
     /** @var \Symfony\Component\BrowserKit\Client $client */
     $client = clone $this->getSession()->getDriver()->getClient();
 
-    $contextual_ids = array_map(function (NodeElement $element): string {
-      return $element->getAttribute('data-contextual-id');
-    }, $element->findAll('xpath', '//*[@data-contextual-id]'));
+    $ids = [];
+    $tokens = [];
+    foreach ($element->findAll('xpath', '//*[@data-contextual-id]') as $element) {
+      $ids[] = $element->getAttribute('data-contextual-id');
+      $tokens[] = $element->getAttribute('data-contextual-token');
+    }
 
     // @see Drupal.behaviors.contextual.attach(), contextual.js
     $client->request('POST', '/contextual/render', [
-      'ids' => $contextual_ids,
+      'ids' => $ids,
+      'tokens' => $tokens,
     ]);
 
     $links = [];
     $response = json_decode($client->getResponse()->getContent(), TRUE);
     if ($response) {
-      foreach ($contextual_ids as $id) {
+      foreach ($ids as $id) {
         if (isset($response[$id])) {
           $crawler = new Crawler();
           $crawler->addHtmlContent($response[$id]);
@@ -204,7 +208,7 @@ class ContextualLinksHelper {
    *   The element that contains the contextual links to open.
    */
   protected function openContextualLinksMenu(NodeElement $element): void {
-    if (!$this->browserSupportsJavascript()) {
+    if (!$this->browserSupportsJavaScript()) {
       throw new \LogicException('Cannot open the contextual link menu on a browser that doesn\'t support JavaScript.');
     }
 
@@ -248,7 +252,7 @@ class ContextualLinksHelper {
 
     // If we are not in a real browser, visit the link path instead of actually
     // opening the contextual menu and clicking the link.
-    if ($this->browserSupportsJavascript()) {
+    if ($this->browserSupportsJavaScript()) {
       $this->openContextualLinksMenu($element);
       $link_element = $this->findContextualLinkElement($element, $link);
       $link_element->focus();

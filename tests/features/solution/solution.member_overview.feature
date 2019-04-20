@@ -14,7 +14,7 @@ Feature: Solution membership overview
       | Ffransis Ecclestone | Ffransis   | Ecclestone  | charles.jpg  | Chief Executive Officer         |
       | Paulinho Jahoda     | Paulinho   | Jahoda      | tim.jpg      | President                       |
       | Aušra Buhr          | Aušra      | Buhr        | alan.jpg     | Executive Director              |
-      | Gina Forney         | Gina       | Forney      | linus.jpeg   | Managing Director               |
+      | Gina Forney Buhr    | Gina       | Forney      | linus.jpeg   | Managing Director               |
       | Karna McReynolds    | Karna      | McReynolds  | blaise.jpg   | General Manager                 |
       | Dilek Bannister     | Dilek      | Bannister   | richard.jpg  | Department Head                 |
       | Fadl Sherman        | Fadl       | Sherman     | leonardo.jpg | Deputy General Manager          |
@@ -36,7 +36,7 @@ Feature: Solution membership overview
       | Growing zone | Ffransis Ecclestone |             | blocked |
       | Growing zone | Paulinho Jahoda     |             | pending |
       | Growing zone | Aušra Buhr          | facilitator |         |
-      | Growing zone | Gina Forney         | facilitator |         |
+      | Growing zone | Gina Forney Buhr    | facilitator |         |
       | Growing zone | Karna McReynolds    |             |         |
       | Growing zone | Dilek Bannister     |             |         |
       | Growing zone | Fadl Sherman        |             |         |
@@ -61,18 +61,18 @@ Feature: Solution membership overview
     And I should be on "/solution/growing-zone/members"
 
     And I should see the following tiles in the correct order:
-      | Ariadna Astrauskas  |
-      | Aušra Buhr          |
-      | Badurad Nussenbaum  |
-      | Callista Wronski    |
-      | Dilek Bannister     |
-      | Fadl Sherman        |
-      | Fulvia Gabrielson   |
-      | Gina Forney         |
-      | Glædwine Ruskin     |
-      | Irini Prescott      |
-      | Karna McReynolds    |
-      | Mark Estévez        |
+      | Ariadna Astrauskas |
+      | Aušra Buhr         |
+      | Badurad Nussenbaum |
+      | Callista Wronski   |
+      | Dilek Bannister    |
+      | Fadl Sherman       |
+      | Fulvia Gabrielson  |
+      | Gina Forney        |
+      | Glædwine Ruskin    |
+      | Irini Prescott     |
+      | Karna McReynolds   |
+      | Mark Estévez       |
     # The 13th and 14th member should not be visible on this page, but on the next page.
     And I should not see the "Peter Proudfoots" tile
     And I should not see the "Pocahontas Mathieu" tile
@@ -104,6 +104,11 @@ Feature: Solution membership overview
       | Fulvia Gabrielson  |
       | Gina Forney        |
 
+    When I fill in "Type something to filter the list" with "buhr"
+    And I press "Apply"
+    Then I should see the following tiles in the correct order:
+      | Aušra Buhr  |
+
     # Clicking the user name should lead to the user profile page.
-    When I click "Ariadna Astrauskas"
-    Then I should see the heading "Ariadna Astrauskas"
+    When I click "Aušra Buhr"
+    Then I should see the heading "Aušra Buhr"

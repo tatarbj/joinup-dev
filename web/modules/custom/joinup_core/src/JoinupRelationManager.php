@@ -1,17 +1,30 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\joinup_core;
 
+use Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\og\MembershipManagerInterface;
 use Drupal\og\OgMembershipInterface;
+use Drupal\og\OgRoleInterface;
+use Drupal\rdf_entity\RdfInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Service to manage relations for the group content entities.
+ *
+ * @todo This module depends on functionality provided by a number of modules
+ *   such as Collection and Solution that depend on joinup_core themselves. This
+ *   causes a circular dependency. It should be moved to the installation
+ *   profile.
+ *
+ * @see https://webgate.ec.europa.eu/CITnet/jira/browse/ISAICP-4543
  */
 class JoinupRelationManager implements JoinupRelationManagerInterface, ContainerInjectionInterface {
 
@@ -55,7 +68,7 @@ class JoinupRelationManager implements JoinupRelationManagerInterface, Container
   /**
    * {@inheritdoc}
    */
-  public function getParent(EntityInterface $entity) {
+  public function getParent(EntityInterface $entity): ?RdfInterface {
     $groups = $this->membershipManager->getGroups($entity);
     if (empty($groups['rdf_entity'])) {
       return NULL;
@@ -67,7 +80,7 @@ class JoinupRelationManager implements JoinupRelationManagerInterface, Container
   /**
    * {@inheritdoc}
    */
-  public function getParentModeration(EntityInterface $entity) {
+  public function getParentModeration(EntityInterface $entity): ?int {
     $parent = $this->getParent($entity);
     if (!$parent) {
       return NULL;
@@ -78,13 +91,13 @@ class JoinupRelationManager implements JoinupRelationManagerInterface, Container
     ];
 
     $moderation = $parent->{$field_array[$parent->bundle()]}->value;
-    return $moderation;
+    return (int) $moderation;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getParentState(EntityInterface $entity) {
+  public function getParentState(EntityInterface $entity): string {
     $parent = $this->getParent($entity);
     $field_array = [
       'collection' => 'field_ar_state',
@@ -98,27 +111,28 @@ class JoinupRelationManager implements JoinupRelationManagerInterface, Container
   /**
    * {@inheritdoc}
    */
-  public function getParentElibrary(EntityInterface $entity) {
+  // @codingStandardsIgnoreLine
+  public function getParentELibraryCreationOption(EntityInterface $entity): int {
     $parent = $this->getParent($entity);
     $field_array = [
       'collection' => 'field_ar_elibrary_creation',
       'solution' => 'field_is_elibrary_creation',
     ];
 
-    $e_library = $parent->{$field_array[$parent->bundle()]}->first()->value;
+    $e_library = (int) $parent->{$field_array[$parent->bundle()]}->first()->value;
     return $e_library;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getGroupOwners(EntityInterface $entity, array $state = [OgMembershipInterface::STATE_ACTIVE]) {
-    $role_id = $entity->getEntityTypeId() . '-' . $entity->bundle() . '-administrator';
+  public function getGroupOwners(EntityInterface $entity, array $states = [OgMembershipInterface::STATE_ACTIVE]): array {
+    $memberships = $this->membershipManager->getGroupMembershipsByRoleNames($entity, ['administrator'], $states);
 
     $users = [];
-    foreach ($this->getGroupMemberships($entity, $state) as $membership) {
+    foreach ($memberships as $membership) {
       $user = $membership->getOwner();
-      if (!empty($user) && $membership->hasRole($role_id)) {
+      if (!empty($user)) {
         $users[$user->id()] = $user;
       }
     }
@@ -129,8 +143,8 @@ class JoinupRelationManager implements JoinupRelationManagerInterface, Container
   /**
    * {@inheritdoc}
    */
-  public function getGroupUsers(EntityInterface $entity, array $state = [OgMembershipInterface::STATE_ACTIVE]) {
-    return array_reduce($this->getGroupMemberships($entity, $state), function ($users, OgMembershipInterface $membership) {
+  public function getGroupUsers(EntityInterface $entity, array $states = [OgMembershipInterface::STATE_ACTIVE]): array {
+    return array_reduce($this->getGroupMemberships($entity, $states), function ($users, OgMembershipInterface $membership) {
       $user = $membership->getOwner();
       if (!empty($user)) {
         $users[] = $user;
@@ -142,28 +156,21 @@ class JoinupRelationManager implements JoinupRelationManagerInterface, Container
   /**
    * {@inheritdoc}
    */
-  public function getGroupMemberships(EntityInterface $entity, array $state = [OgMembershipInterface::STATE_ACTIVE]) {
-    /** @var \Drupal\og\OgMembershipInterface[] $memberships */
-    $memberships = $this->entityTypeManager->getStorage('og_membership')->loadByProperties([
-      'state' => $state,
-      'entity_type' => $entity->getEntityTypeId(),
-      'entity_id' => $entity->id(),
-    ]);
-
-    return $memberships;
+  public function getGroupMemberships(EntityInterface $entity, array $states = [OgMembershipInterface::STATE_ACTIVE]): array {
+    return $this->membershipManager->getGroupMembershipsByRoleNames($entity, [OgRoleInterface::AUTHENTICATED], $states);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getUserMembershipsByRole(AccountInterface $user, $role, array $state = [OgMembershipInterface::STATE_ACTIVE]) {
+  public function getUserMembershipsByRole(AccountInterface $user, string $role, array $states = [OgMembershipInterface::STATE_ACTIVE]): array {
     $storage = $this->entityTypeManager->getStorage('og_membership');
 
     // Fetch all the memberships of the user, filtered by role and state.
     $query = $storage->getQuery();
     $query->condition('uid', $user->id());
     $query->condition('roles', $role);
-    $query->condition('state', $state, 'IN');
+    $query->condition('state', $states, 'IN');
     $result = $query->execute();
 
     return $storage->loadMultiple($result);
@@ -172,7 +179,7 @@ class JoinupRelationManager implements JoinupRelationManagerInterface, Container
   /**
    * {@inheritdoc}
    */
-  public function getCollectionsWhereSoleOwner(AccountInterface $user) {
+  public function getCollectionsWhereSoleOwner(AccountInterface $user): array {
     $memberships = $this->getUserMembershipsByRole($user, 'rdf_entity-collection-administrator');
 
     // Prepare a list of collections where the user is the sole owner.
@@ -186,6 +193,51 @@ class JoinupRelationManager implements JoinupRelationManagerInterface, Container
     }
 
     return $collections;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCollectionIds(): array {
+    return $this->getRdfEntityIdsByBundle('collection');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSolutionIds(): array {
+    return $this->getRdfEntityIdsByBundle('solution');
+  }
+
+  /**
+   * Returns the entity IDs of the RDF entities with the given bundle ID.
+   *
+   * @param string $bundle
+   *   The bundle ID.
+   *
+   * @return string[]
+   *   An array of entity IDs.
+   */
+  protected function getRdfEntityIdsByBundle(string $bundle): array {
+    try {
+      // Since the Joinup Core module depends on the RDF Entity module we can
+      // reasonably assume that the entity storage is defined and is valid. If
+      // it is not this is due to exceptional circumstances occuring at runtime.
+      $storage = $this->entityTypeManager->getStorage('rdf_entity');
+      $definition = $this->entityTypeManager->getDefinition('rdf_entity');
+    }
+    catch (InvalidPluginDefinitionException $e) {
+      throw new \RuntimeException('The RDF entity storage is not valid.');
+    }
+    catch (PluginNotFoundException $e) {
+      throw new \RuntimeException('The RDF entity storage is not defined.');
+    }
+
+    $bundle_key = $definition->getKey('bundle');
+
+    $query = $storage->getQuery();
+    $query->condition($bundle_key, $bundle);
+    return $query->execute();
   }
 
 }

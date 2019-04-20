@@ -5,6 +5,8 @@
  * Contains \CustomPageSubContext.
  */
 
+declare(strict_types = 1);
+
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Url;
 use Drupal\DrupalExtension\Context\DrupalSubContextBase;
@@ -14,9 +16,11 @@ use Drupal\joinup\Traits\FileTrait;
 use Drupal\joinup\Traits\NodeTrait;
 use Drupal\joinup\Traits\OgTrait;
 use Drupal\joinup\Traits\RdfEntityTrait;
+use Drupal\joinup\Traits\TraversingTrait;
 use Drupal\joinup\Traits\UtilityTrait;
 use Drupal\og\OgGroupAudienceHelperInterface;
 use Drupal\og_menu\Tests\Traits\OgMenuTrait;
+use PHPUnit\Framework\Assert;
 
 /**
  * Behat step definitions for testing custom pages.
@@ -29,6 +33,7 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
   use OgTrait;
   use RdfEntityTrait;
   use UtilityTrait;
+  use TraversingTrait;
 
   /**
    * Handles the attachment field for custom page nodes.
@@ -37,18 +42,21 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    *   An object containing the entity properties and fields that are to be used
    *   for creating the node as properties on the object.
    *
+   * @throws \Exception
+   *   Thrown when a file being attached is not found.
+   *
    * @BeforeNodeCreate
    */
-  public static function massageCustomPageFieldsBeforeNodeCreate(BeforeNodeCreateScope $scope) {
+  public static function massageCustomPageFieldsBeforeNodeCreate(BeforeNodeCreateScope $scope): void {
     /** @var \stdClass $node */
     $node = $scope->getEntity();
 
-    if ($node->type !== 'custom_page' || empty($node->attachments)) {
+    if ($node->type !== 'custom_page') {
       return;
     }
 
     // We want to copy it from the fixtures into the file system and register it
-    // in the DocumentSubContext so it can be cleaned up after the scenario
+    // in the CustomPageSubContext so it can be cleaned up after the scenario
     // ends. Perform a small dance to get access to the context class from
     // inside this static callback.
     /** @var \Behat\Behat\Context\Environment\InitializedContextEnvironment $environment */
@@ -56,8 +64,17 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
     /** @var \CustomPageSubContext $context */
     $context = $environment->getContext(self::class);
 
-    foreach ($context->explodeCommaSeparatedStepArgument($node->attachments) as $filename) {
-      $context->createFile($filename);
+    if (!empty($node->attachments)) {
+      foreach ($context->explodeCommaSeparatedStepArgument($node->attachments) as $filename) {
+        /** @var \Drupal\file\FileInterface $file */
+        $context->createFile($filename);
+      }
+    }
+
+    if (!empty($node->logo)) {
+      /** @var \Drupal\file\FileInterface $file */
+      $file = $context->createFile($node->logo);
+      $node->logo = $file->getFileUri();
     }
   }
 
@@ -67,10 +84,10 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @param string $title
    *   The name of the custom page.
    *
-   * @When (I )go to the :title custom page
-   * @When (I )visit the :title custom page
+   * @When I go to the :title custom page
+   * @When I visit the :title custom page
    */
-  public function visitCustomPage($title) {
+  public function visitCustomPage(string $title): void {
     /** @var \Drupal\node\Entity\Node $node */
     $node = $this->getNodeByTitle($title, 'custom_page');
     $this->visitPath($node->url());
@@ -87,9 +104,12 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    *   The RDF entity type to which the custom pages belong. Can be either
    *   'collection' or 'solution'.
    *
+   * @throws \Exception
+   *   Thrown when the count is incorrect.
+   *
    * @Then the :name :type should have :count custom page(s)
    */
-  public function assertContactInformationCount($count, $name, $type) {
+  public function assertContactInformationCount(int $count, string $name, string $type): void {
     $group = $this->getRdfEntityByLabel($name, $type);
     $this->assertGroupContentCount($count, $group, 'node', 'custom_page');
   }
@@ -116,7 +136,7 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    *
    * @Then I should not have access to the menu link administration pages for the :menu menu of the :title :type
    */
-  public function assertNoAccessToOgMenuAdministration($menu, $title, $type) {
+  public function assertNoAccessToOgMenuAdministration(string $menu, string $title, string $type): void {
     // Retrieve the OG Menu instance for the given menu and group.
     $group = $this->getRdfEntityByLabel($title, $type);
     $values = [
@@ -133,8 +153,8 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
 
     // Compile a list of routes to which the user should not have access.
     // Note that this excludes the 'entity.ogmenu_instance.edit_form' route to
-    // which the collection facilitator should have access; this is used to
-    // reorder the pages in the menu.
+    // which the facilitator should have access; this is used to reorder the
+    // pages in the menu.
     $routes = [
       'entity.ogmenu_instance.canonical' => [
         'ogmenu_instance' => $instance->id(),
@@ -151,6 +171,7 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
         'og_group' => $group->id(),
       ],
       'entity.ogmenu.collection' => [],
+      'entity.ogmenu.solution' => [],
       'entity.ogmenu.add_form' => [],
       'entity.ogmenu.overview_form' => ['ogmenu' => $menu],
       'entity.ogmenu.edit_form' => ['ogmenu' => $menu],
@@ -183,7 +204,7 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    *
    * @Then the :menu menu of the :label :type should have :count visible item(s)
    */
-  public function assertVisibleItemsInMenuCount($menu, $label, $type, $count) {
+  public function assertVisibleItemsInMenuCount(string $menu, string $label, string $type, int $count): void {
     /** @var \Drupal\Core\Menu\MenuLinkTreeInterface $link_tree_service */
     $link_tree_service = \Drupal::service('menu.link_tree');
 
@@ -194,7 +215,7 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
     $build = $link_tree_service->build($tree);
     $actual = !empty($build['#items']) ? count($build['#items']) : 0;
 
-    PHPUnit_Framework_Assert::assertEquals($count, $actual);
+    Assert::assertEquals($count, $actual);
   }
 
   /**
@@ -211,9 +232,9 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    *
    * @Then the :menu menu of the :label :type should have :count item(s)
    */
-  public function assertItemsInMenuForm($menu, $label, $type, $count) {
+  public function assertItemsInMenuForm(string $menu, string $label, string $type, int $count): void {
     $tree = $this->getOgMenuTreeByNameLabelAndType($menu, $label, $type);
-    PHPUnit_Framework_Assert::assertEquals($count, count($tree));
+    Assert::assertEquals($count, count($tree));
   }
 
   /**
@@ -232,7 +253,7 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    *
    * @When I :operation :title in the :menu menu of the :label :type
    */
-  public function switchItemInMenu($operation, $title, $menu, $label, $type) {
+  public function switchItemInMenu(string $operation, string $title, string $menu, string $label, string $type): void {
     /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager_service */
     $menu_link_manager_service = \Drupal::service('plugin.manager.menu.link');
 
@@ -263,7 +284,7 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @return array
    *   The tree, flat as a plank.
    */
-  protected function flattenTree(array $tree) {
+  protected function flattenTree(array $tree): array {
     $flattened = [];
     foreach ($tree as $id => $item) {
       if ($item->count() > 1) {
@@ -289,10 +310,44 @@ class CustomPageSubContext extends DrupalSubContextBase implements DrupalSubCont
    * @return \Drupal\Core\Menu\MenuLinkTreeElement[]
    *   The menu tree.
    */
-  protected function getOgMenuTreeByNameLabelAndType($menu_name, $group_label, $group_type) {
+  protected function getOgMenuTreeByNameLabelAndType(string $menu_name, string $group_label, string $group_type): array {
     $group = $this->getRdfEntityByLabel($group_label, $group_type);
     $menu_instance = $this->getOgMenuInstance($group->id(), $menu_name);
     return $this->getOgMenuTree($menu_instance);
+  }
+
+  /**
+   * Asserts that a custom page tile has the logo properly set.
+   *
+   * @param string $title
+   *   The title of the custom page tile to inspect.
+   *
+   * @throws \Exception
+   *   Thrown when the logo is not found or not correct.
+   *
+   * @Then the logo should be shown in the :title custom page tile
+   */
+  public function assertCustomPageTileHasLogo(string $title): void {
+    // Retrieve the URL of the logo in the tile.
+    $tile = $this->getTileByHeading($title);
+    $actual_url = $tile->find('xpath', '//img')->getAttribute('src');
+    if (!$actual_url) {
+      throw new \Exception("No logo link found in the '$title' tile.");
+    }
+
+    // Retrieve the image entity from the custom page logo.
+    /** @var \Drupal\node\Entity\Node $node */
+    $node = $this->getNodeByTitle($title, 'custom_page');
+    /** @var \Drupal\file\FileInterface $image */
+    $image = \Drupal::service('file_url.handler')::urlToFile($node->get('field_custom_page_logo')->first()->target_id);
+
+    // Generate the expected URL of the logo using the right image style.
+    // @see \Drupal\image\Plugin\Field\FieldFormatter\ImageUrlFormatter::viewElements()
+    /** @var \Drupal\image\ImageStyleInterface $image_style */
+    $image_style = \Drupal::entityTypeManager()->getStorage('image_style')->load('horizontal_medium_image');
+    $expected_url = file_url_transform_relative($image_style->buildUrl($image->getFileUri()));
+
+    Assert::assertEquals($expected_url, $actual_url, 'The logo shown is not the correct one.');
   }
 
 }

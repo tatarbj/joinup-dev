@@ -18,6 +18,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\joinup\JoinupCustomInstallTasks;
 use Drupal\joinup\JoinupHelper;
+use Drupal\joinup_community_content\CommunityContentHelper;
 use Drupal\search_api\Query\QueryInterface;
 use Drupal\views\ViewExecutable;
 
@@ -47,9 +48,30 @@ function joinup_form_install_settings_form_alter(&$form, FormStateInterface $for
     '#max' => 65535,
     '#required' => TRUE,
   ];
+  $form['sparql']['namespace'] = [
+    '#type' => 'textfield',
+    '#title' => 'Namespace',
+    '#default_value' => 'Drupal\\Driver\\Database\\sparql',
+    '#required' => TRUE,
+  ];
 
   $form['actions']['save']['#limit_validation_errors'][] = ['sparql'];
+  $form['#validate'][] = 'joinup_form_install_settings_validate';
   $form['actions']['save']['#submit'][] = 'joinup_form_install_settings_form_save';
+}
+
+/**
+ * Validation callback for the installation form.
+ *
+ * Ensures that the connection class exists.
+ */
+function joinup_form_install_settings_validate($form, FormStateInterface $form_state) {
+  $namespace = $form_state->getValue(['sparql', 'namespace']);
+  $class = trim($namespace) . '\\Connection';
+  // Try to load the connection class.
+  if (!class_exists($class)) {
+    $form_state->setError($form['sparql']['namespace'], "Class {$class} could not be detected.");
+  }
 }
 
 /**
@@ -58,6 +80,7 @@ function joinup_form_install_settings_form_alter(&$form, FormStateInterface $for
 function joinup_form_install_settings_form_save($form, FormStateInterface $form_state) {
   $host = $form_state->getValue(['sparql', 'host']);
   $port = $form_state->getValue(['sparql', 'port']);
+  $namespace = $form_state->getValue(['sparql', 'namespace']);
   // @see rdf_entity.services.yml
   $key = 'sparql_default';
   $target = 'default';
@@ -65,7 +88,7 @@ function joinup_form_install_settings_form_save($form, FormStateInterface $form_
     'prefix' => '',
     'host' => $host,
     'port' => $port,
-    'namespace' => 'Drupal\\rdf_entity\\Database\\Driver\\sparql',
+    'namespace' => $namespace,
     'driver' => 'sparql',
   ];
   $settings['databases'][$key][$target] = (object) [
@@ -214,11 +237,16 @@ function joinup_inline_entity_form_reference_form_alter(&$reference_form, &$form
  * - Disable access to the comment settings. These are managed on collection
  *   level.
  * - Disable access to the meta information.
+ * - Allow access to the uid field only to the moderators.
  */
 function joinup_form_node_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $form['revision_information']['#access'] = FALSE;
   $form['revision']['#access'] = FALSE;
   $form['meta']['#access'] = FALSE;
+
+  if (isset($form['uid'])) {
+    $form['uid']['#access'] = \Drupal::currentUser()->hasPermission('administer nodes');
+  }
 
   foreach (['field_comments', 'field_replies'] as $field) {
     if (!empty($form[$field])) {
@@ -353,7 +381,7 @@ function joinup_entity_view_alter(array &$build, EntityInterface $entity, Entity
 
   // Add the "collection_context" contextual links group on community content
   // and solutions.
-  if (JoinupHelper::isSolution($entity) || JoinupHelper::isCommunityContent($entity)) {
+  if (JoinupHelper::isSolution($entity) || CommunityContentHelper::isCommunityContent($entity)) {
     // The rendered entity needs to vary by og group context.
     $build['#cache']['contexts'] = Cache::mergeContexts($build['#cache']['contexts'], ['og_group_context']);
     $build['#contextual_links']['collection_context'] = [
