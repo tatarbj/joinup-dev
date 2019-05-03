@@ -3559,6 +3559,9 @@
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
                     }
+                },
+                "patches_applied": {
+                    "Facet Summary for Facet Items with a set dependency. @see https://www.drupal.org/node/2873480": "resources/patch/facet_summary_for_facet-2873480-18.patch"
                 }
             },
             "notification-url": "https://packages.drupal.org/8/downloads",
@@ -5052,7 +5055,7 @@
             "version": "dev-7.x-2.x",
             "source": {
                 "type": "git",
-                "url": "https://github.com/pfrenssen/phingdrushtask.git",
+                "url": "git@github.com:pfrenssen/phingdrushtask.git",
                 "reference": "f4b020f09da3c174fce40f2bd9a9617689f57124"
             },
             "dist": {
@@ -5761,7 +5764,7 @@
             "version": "dev-empty-module",
             "source": {
                 "type": "git",
-                "url": "https://github.com/ec-europa/sparql_entity_storage.git",
+                "url": "git@github.com:ec-europa/sparql_entity_storage.git",
                 "reference": "2a9c3d22318bf5b861c253b40a1e4105d41b9fb7"
             },
             "dist": {
@@ -5795,7 +5798,7 @@
             "version": "1.0.0-alpha2",
             "source": {
                 "type": "git",
-                "url": "https://github.com/ec-europa/spdx.git",
+                "url": "git@github.com:ec-europa/spdx.git",
                 "reference": "bc34509918f8fca0d4657ea7a8b97ec60e550961"
             },
             "dist": {
@@ -5821,10 +5824,6 @@
                 }
             },
             "description": "Allows to federate and manage the SPDX licences.",
-            "support": {
-                "source": "https://github.com/ec-europa/spdx/tree/1.0.0-alpha2",
-                "issues": "https://github.com/ec-europa/spdx/issues"
-            },
             "time": "2019-03-26T15:07:43+00:00"
         },
         {
@@ -6603,7 +6602,7 @@
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "https://github.com/ec-europa/joinup-tallinn-dashboard.git",
+                "url": "git@github.com:ec-europa/joinup-tallinn-dashboard.git",
                 "reference": "3ba9f87964fb6ece3c8f53904e47405e12f93ae0"
             },
             "dist": {
@@ -6640,7 +6639,7 @@
             "version": "2.1.3",
             "source": {
                 "type": "git",
-                "url": "https://github.com/ec-europa/virtuoso.git",
+                "url": "git@github.com:ec-europa/virtuoso.git",
                 "reference": "5991818b3a5c5a5bb74d3c18f1826d3d0e24321d"
             },
             "dist": {
@@ -6664,10 +6663,6 @@
                     "email": "sander.vandooren@ausy.be"
                 }
             ],
-            "support": {
-                "source": "https://github.com/ec-europa/virtuoso/tree/2.1.3",
-                "issues": "https://github.com/ec-europa/virtuoso/issues"
-            },
             "time": "2019-01-29T12:41:51+00:00"
         },
         {
@@ -12480,17 +12475,17 @@
         },
         {
             "name": "drupal/default_content",
-            "version": "1.0.0-alpha7",
+            "version": "1.0.0-alpha8",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/default_content.git",
-                "reference": "8.x-1.0-alpha7"
+                "reference": "8.x-1.0-alpha8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/default_content-8.x-1.0-alpha7.zip",
-                "reference": "8.x-1.0-alpha7",
-                "shasum": "4f1b49cdad6d74ef879f4700caaa11703ba85ad7"
+                "url": "https://ftp.drupal.org/files/projects/default_content-8.x-1.0-alpha8.zip",
+                "reference": "8.x-1.0-alpha8",
+                "shasum": "cb16848a5c34bd5c11da1412fd49841814337ae8"
             },
             "require": {
                 "drupal/core": "~8.3"
@@ -12501,11 +12496,16 @@
                     "dev-1.x": "1.x-dev"
                 },
                 "drupal": {
-                    "version": "8.x-1.0-alpha7",
-                    "datestamp": "1508448545",
+                    "version": "8.x-1.0-alpha8",
+                    "datestamp": "1556924587",
                     "security-coverage": {
                         "status": "not-covered",
                         "message": "Alpha releases are not covered by Drupal security advisories."
+                    }
+                },
+                "drush": {
+                    "services": {
+                        "drush.services.yml": "^9"
                     }
                 }
             },
@@ -12555,7 +12555,7 @@
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/devel.git",
-                "reference": "8d61aaa59bb1a7034cad5cbaecdf1bc5a6df1fca"
+                "reference": "d980fc6bc216f62df02e9780ec0c6f8cc6b349d6"
             },
             "require": {
                 "drupal/core": "~8.0",
@@ -12567,8 +12567,8 @@
                     "dev-2.x": "2.x-dev"
                 },
                 "drupal": {
-                    "version": "8.x-2.0+46-dev",
-                    "datestamp": "1556419085",
+                    "version": "8.x-2.0+48-dev",
+                    "datestamp": "1556666286",
                     "security-coverage": {
                         "status": "not-covered",
                         "message": "Dev releases are not covered by Drupal security advisories."
