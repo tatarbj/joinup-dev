@@ -3805,7 +3805,7 @@
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/geocoder.git",
-                "reference": "3cbc4bcf6e9d9c144a93fd685aed8a1f1a80bbf2"
+                "reference": "85aa5fcbccb6d891a7612e16fa1aace186fdcdf4"
             },
             "require": {
                 "drupal/core": "~8.0",
@@ -3847,7 +3847,7 @@
                 },
                 "drupal": {
                     "version": "8.x-3.x-dev",
-                    "datestamp": "1549949280",
+                    "datestamp": "1554291181",
                     "security-coverage": {
                         "status": "not-covered",
                         "message": "Dev releases are not covered by Drupal security advisories."
@@ -3913,7 +3913,7 @@
                 "issues": "https://drupal.org/project/issues/geocoder",
                 "irc": "irc://irc.freenode.org/drupal-geo"
             },
-            "time": "2019-04-03T11:32:53+00:00"
+            "time": "2019-06-13T01:50:13+00:00"
         },
         {
             "name": "drupal/geofield",
@@ -4901,6 +4901,9 @@
                         "status": "not-covered",
                         "message": "Alpha releases are not covered by Drupal security advisories."
                     }
+                },
+                "patches_applied": {
+                    "Do not override the default user entity view. @see https://www.drupal.org/node/2650192": "https://www.drupal.org/files/issues/properly_place_fields-2650192-4-D8.patch"
                 }
             },
             "notification-url": "https://packages.drupal.org/8/downloads",
@@ -12560,7 +12563,7 @@
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/devel.git",
-                "reference": "4eefb59e22ed63ecb3ffa3862c3b0b4c5179d54c"
+                "reference": "55c2796a5153020e30f958e7b43fc64e2eed8835"
             },
             "require": {
                 "drupal/core": "~8.0",
@@ -12572,8 +12575,8 @@
                     "dev-2.x": "2.x-dev"
                 },
                 "drupal": {
-                    "version": "8.x-2.0+48-dev",
-                    "datestamp": "1556666286",
+                    "version": "8.x-2.1+2-dev",
+                    "datestamp": "1559994486",
                     "security-coverage": {
                         "status": "not-covered",
                         "message": "Dev releases are not covered by Drupal security advisories."
