@@ -7830,9 +7830,9 @@
             "authors": [
                 {
                     "name": "Markus Lanthaler",
-                    "role": "Developer",
                     "email": "mail@markus-lanthaler.com",
-                    "homepage": "http://www.markus-lanthaler.com"
+                    "homepage": "http://www.markus-lanthaler.com",
+                    "role": "Developer"
                 }
             ],
             "description": "IRI handling for PHP",
@@ -7881,9 +7881,9 @@
             "authors": [
                 {
                     "name": "Markus Lanthaler",
-                    "role": "Developer",
                     "email": "mail@markus-lanthaler.com",
-                    "homepage": "http://www.markus-lanthaler.com"
+                    "homepage": "http://www.markus-lanthaler.com",
+                    "role": "Developer"
                 }
             ],
             "description": "JSON-LD Processor for PHP",
@@ -12417,17 +12417,17 @@
         },
         {
             "name": "drupal/config_inspector",
-            "version": "1.0.0-beta2",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/config_inspector.git",
-                "reference": "8.x-1.0-beta2"
+                "reference": "8.x-1.0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/config_inspector-8.x-1.0-beta2.zip",
-                "reference": "8.x-1.0-beta2",
-                "shasum": "1f7b27c4b1c800a605a6d6583d0b1d120794658e"
+                "url": "https://ftp.drupal.org/files/projects/config_inspector-8.x-1.0.zip",
+                "reference": "8.x-1.0",
+                "shasum": "dc92ceb8fd3e289f9e5c058692346e4b9ef3fa74"
             },
             "require": {
                 "drupal/core": "*"
@@ -12438,11 +12438,16 @@
                     "dev-1.x": "1.x-dev"
                 },
                 "drupal": {
-                    "version": "8.x-1.0-beta2",
-                    "datestamp": "1537879680",
+                    "version": "8.x-1.0",
+                    "datestamp": "1569419586",
                     "security-coverage": {
-                        "status": "not-covered",
-                        "message": "Beta releases are not covered by Drupal security advisories."
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
+                    }
+                },
+                "drush": {
+                    "services": {
+                        "drush.services.yml": "^9"
                     }
                 }
             },
