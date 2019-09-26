@@ -5058,7 +5058,7 @@
             "version": "dev-7.x-2.x",
             "source": {
                 "type": "git",
-                "url": "git@github.com:pfrenssen/phingdrushtask.git",
+                "url": "https://github.com/pfrenssen/phingdrushtask.git",
                 "reference": "f4b020f09da3c174fce40f2bd9a9617689f57124"
             },
             "dist": {
@@ -5767,7 +5767,7 @@
             "version": "dev-empty-module",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ec-europa/sparql_entity_storage.git",
+                "url": "https://github.com/ec-europa/sparql_entity_storage.git",
                 "reference": "2a9c3d22318bf5b861c253b40a1e4105d41b9fb7"
             },
             "dist": {
@@ -5801,7 +5801,7 @@
             "version": "1.0.0-alpha2",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ec-europa/spdx.git",
+                "url": "https://github.com/ec-europa/spdx.git",
                 "reference": "bc34509918f8fca0d4657ea7a8b97ec60e550961"
             },
             "dist": {
@@ -5827,6 +5827,10 @@
                 }
             },
             "description": "Allows to federate and manage the SPDX licences.",
+            "support": {
+                "source": "https://github.com/ec-europa/spdx/tree/1.0.0-alpha2",
+                "issues": "https://github.com/ec-europa/spdx/issues"
+            },
             "time": "2019-03-26T15:07:43+00:00"
         },
         {
@@ -6605,7 +6609,7 @@
             "version": "dev-master",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ec-europa/joinup-tallinn-dashboard.git",
+                "url": "https://github.com/ec-europa/joinup-tallinn-dashboard.git",
                 "reference": "3ba9f87964fb6ece3c8f53904e47405e12f93ae0"
             },
             "dist": {
@@ -6642,7 +6646,7 @@
             "version": "2.1.3",
             "source": {
                 "type": "git",
-                "url": "git@github.com:ec-europa/virtuoso.git",
+                "url": "https://github.com/ec-europa/virtuoso.git",
                 "reference": "5991818b3a5c5a5bb74d3c18f1826d3d0e24321d"
             },
             "dist": {
@@ -6666,6 +6670,10 @@
                     "email": "sander.vandooren@ausy.be"
                 }
             ],
+            "support": {
+                "source": "https://github.com/ec-europa/virtuoso/tree/2.1.3",
+                "issues": "https://github.com/ec-europa/virtuoso/issues"
+            },
             "time": "2019-01-29T12:41:51+00:00"
         },
         {
@@ -12962,17 +12970,17 @@
         },
         {
             "name": "drupal/stage_file_proxy",
-            "version": "1.0.0-beta1",
+            "version": "1.0.0-rc1",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/stage_file_proxy.git",
-                "reference": "8.x-1.0-beta1"
+                "reference": "8.x-1.0-rc1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/stage_file_proxy-8.x-1.0-beta1.zip",
-                "reference": "8.x-1.0-beta1",
-                "shasum": "6609a2166509fd7cc2e593ff2efd7c44daeb0e5b"
+                "url": "https://ftp.drupal.org/files/projects/stage_file_proxy-8.x-1.0-rc1.zip",
+                "reference": "8.x-1.0-rc1",
+                "shasum": "609dc94f9e6d5e4e0fe4c2f71f3134625a071860"
             },
             "require": {
                 "drupal/core": "~8.0"
@@ -12983,11 +12991,11 @@
                     "dev-1.x": "1.x-dev"
                 },
                 "drupal": {
-                    "version": "8.x-1.0-beta1",
-                    "datestamp": "1555515785",
+                    "version": "8.x-1.0-rc1",
+                    "datestamp": "1569500290",
                     "security-coverage": {
                         "status": "not-covered",
-                        "message": "Beta releases are not covered by Drupal security advisories."
+                        "message": "RC releases are not covered by Drupal security advisories."
                     }
                 }
             },
@@ -13001,7 +13009,7 @@
                     "homepage": "https://www.drupal.org/user/107229"
                 },
                 {
-                    "name": "axel.rutz",
+                    "name": "geek.merlin aka axel.rutz",
                     "homepage": "https://www.drupal.org/user/229048"
                 },
                 {
