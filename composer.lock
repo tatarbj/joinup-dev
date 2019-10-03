@@ -4493,17 +4493,17 @@
         },
         {
             "name": "drupal/message_notify",
-            "version": "1.0.0-beta1",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/message_notify.git",
-                "reference": "8.x-1.0-beta1"
+                "reference": "8.x-1.0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/message_notify-8.x-1.0-beta1.zip",
-                "reference": "8.x-1.0-beta1",
-                "shasum": "085a628bd859b4fb861bb46a8c8a00d668a248ad"
+                "url": "https://ftp.drupal.org/files/projects/message_notify-8.x-1.0.zip",
+                "reference": "8.x-1.0",
+                "shasum": "fba263d91fca2012692cdbae8ee43bdf8e2aec3b"
             },
             "require": {
                 "drupal/core": "~8.0",
@@ -4515,11 +4515,11 @@
                     "dev-1.x": "1.x-dev"
                 },
                 "drupal": {
-                    "version": "8.x-1.0-beta1",
-                    "datestamp": "1490992382",
+                    "version": "8.x-1.0",
+                    "datestamp": "1570146484",
                     "security-coverage": {
-                        "status": "not-covered",
-                        "message": "Beta releases are not covered by Drupal security advisories."
+                        "status": "covered",
+                        "message": "Covered by Drupal's security advisory policy"
                     }
                 }
             },
